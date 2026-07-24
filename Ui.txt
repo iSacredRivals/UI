@@ -21,48 +21,39 @@ local COLORS = {
     ToggleOff = Color3.fromRGB(26, 20, 32),
 }
 local themeStrokes, themeTexts, themeFrames = {}, {}, {}
-
 -- GUIs
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SacredUI_UltimateUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
-
 local toggleIconGui = Instance.new("ScreenGui")
 toggleIconGui.Name = "SacredUI_ToggleIcon"
 toggleIconGui.ResetOnSpawn = false
 toggleIconGui.Parent = playerGui
-
 local playerWidgetGui = Instance.new("ScreenGui")
 playerWidgetGui.Name = "SacredUI_PlayerWidget"
 playerWidgetGui.ResetOnSpawn = false
 playerWidgetGui.Parent = playerGui
-
 local npcWidgetGui = Instance.new("ScreenGui")
 npcWidgetGui.Name = "SacredUI_NpcWidget"
 npcWidgetGui.ResetOnSpawn = false
 npcWidgetGui.Parent = playerGui
-
 local superJumpWidgetGui = Instance.new("ScreenGui")
 superJumpWidgetGui.Name = "SacredUI_SuperJumpWidget"
 superJumpWidgetGui.ResetOnSpawn = false
 superJumpWidgetGui.Parent = playerGui
-
 local sanguineAutoWidgetGui = Instance.new("ScreenGui")
 sanguineAutoWidgetGui.Name = "SacredUI_SanguineAutoWidget"
 sanguineAutoWidgetGui.ResetOnSpawn = false
 sanguineAutoWidgetGui.Parent = playerGui
-
 local soulGuitarWidgetGui = Instance.new("ScreenGui")
 soulGuitarWidgetGui.Name = "SacredUI_SoulGuitarWidget"
 soulGuitarWidgetGui.ResetOnSpawn = false
 soulGuitarWidgetGui.Parent = playerGui
-
 local portalSoruWidgetGui = Instance.new("ScreenGui")
 portalSoruWidgetGui.Name = "SacredUI_PortalSoruWidget"
 portalSoruWidgetGui.ResetOnSpawn = false
 portalSoruWidgetGui.Parent = playerGui
-
 -- ============================================================
 -- CREAR WIDGETS FLOTANTES Y SINCRONIZACIÓN
 -- ============================================================
@@ -98,7 +89,6 @@ local function updateWidgetsVisuals()
         PortalSoruWidget.Text = PortalSoruEnabled and "🌀 Portal: ON" or "🌀 Portal: OFF"
     end
 end
-
 local function makeFloatingWidget(parent, pos, title)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 130, 0, 36)
@@ -118,20 +108,15 @@ local function makeFloatingWidget(parent, pos, title)
     table.insert(themeStrokes, sk)
     return btn
 end
-
 SuperJumpWidget = makeFloatingWidget(superJumpWidgetGui, UDim2.new(0.82, 0, 0.34, 0), "SJUMP")
 SuperJumpWidget.Text = "⬆ SJump"
 SuperJumpWidget.MouseButton1Click:Connect(function() doSuperJump() end)
-
 SanguineAutoWidget = makeFloatingWidget(sanguineAutoWidgetGui, UDim2.new(0.82, 0, 0.41, 0), "SANGUINE")
 SanguineAutoWidget.Text = "⚫ Auto: OFF"
-
 SoulGuitarWidget = makeFloatingWidget(soulGuitarWidgetGui, UDim2.new(0.82, 0, 0.48, 0), "SOUL GUITAR")
 SoulGuitarWidget.Text = "🎸 SGuitar: OFF"
-
 PortalSoruWidget = makeFloatingWidget(portalSoruWidgetGui, UDim2.new(0.82, 0, 0.55, 0), "PORTAL")
 PortalSoruWidget.Text = "🌀 Portal: OFF"
-
 local function makeWidget(parent, pos)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 115, 0, 36)
@@ -150,18 +135,16 @@ local function makeWidget(parent, pos)
     table.insert(themeStrokes, sk)
     return btn
 end
-
 PlayerWidgetBtn = makeWidget(playerWidgetGui, UDim2.new(0.82, 0, 0.20, 0))
 PlayerWidgetBtn.Text = "🔓 PLAYER: OFF"
 NpcWidgetBtn = makeWidget(npcWidgetGui, UDim2.new(0.82, 0, 0.27, 0))
 NpcWidgetBtn.Text = "🔓 NPC: OFF"
-
 -- ============================================================
 -- INTERFAZ PRINCIPAL
 -- ============================================================
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 460, 0, 280)
-mainFrame.Position = UDim2.new(0.5, -230, 0.5, -140)
+mainFrame.Size = UDim2.new(0, 460, 0, 310)
+mainFrame.Position = UDim2.new(0.5, -230, 0.5, -155)
 mainFrame.BackgroundColor3 = COLORS.Background
 mainFrame.ClipsDescendants = false
 mainFrame.Active = true
@@ -171,13 +154,11 @@ Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
 local mainStroke = Instance.new("UIStroke", mainFrame)
 mainStroke.Thickness = 1.5; mainStroke.Color = currentThemeColor
 table.insert(themeStrokes, mainStroke)
-
 local rainContainer = Instance.new("Frame", mainFrame)
 rainContainer.Size = UDim2.new(1, 0, 1, 0)
 rainContainer.BackgroundTransparency = 1
 rainContainer.ClipsDescendants = true
 Instance.new("UICorner", rainContainer).CornerRadius = UDim.new(0, 10)
-
 local function createRainDrop()
     if not mainFrame.Visible then return end
     local drop = Instance.new("Frame", rainContainer)
@@ -198,18 +179,15 @@ local function createRainDrop()
         drop:Destroy()
     end)
 end
-
 spawn(function()
     while true do wait(0.05); pcall(createRainDrop) end
 end)
-
 local function centerAndMaximizeUI()
     mainFrame.Visible = true
     TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.5, -230, 0.5, -140)
+        Position = UDim2.new(0.5, -230, 0.5, -155)
     }):Play()
 end
-
 local openButton = Instance.new("TextButton")
 openButton.Size = UDim2.new(0, 42, 0, 42)
 openButton.Position = UDim2.new(0, 15, 0, 15)
@@ -227,17 +205,14 @@ local openStroke = Instance.new("UIStroke", openButton)
 openStroke.Thickness = 1.2; openStroke.Color = currentThemeColor
 table.insert(themeTexts, openButton)
 table.insert(themeStrokes, openStroke)
-
 openButton.MouseButton1Click:Connect(function()
     openButton.Visible = false
     centerAndMaximizeUI()
 end)
-
 local controlsContainer = Instance.new("Frame", mainFrame)
 controlsContainer.Size = UDim2.new(0, 50, 0, 25)
 controlsContainer.Position = UDim2.new(1, -60, 0, 12)
 controlsContainer.BackgroundTransparency = 1
-
 local function createTopControl(text, xOff, color, cb)
     local btn = Instance.new("TextButton", controlsContainer)
     btn.Size = UDim2.new(0, 20, 0, 20)
@@ -250,7 +225,6 @@ local function createTopControl(text, xOff, color, cb)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     btn.MouseButton1Click:Connect(cb)
 end
-
 createTopControl("-", 0, COLORS.TextGray, function()
     mainFrame.Visible = false
     openButton.Visible = true
@@ -261,13 +235,12 @@ createTopControl("X", 26, Color3.fromRGB(255, 75, 75), function()
     superJumpWidgetGui:Destroy(); sanguineAutoWidgetGui:Destroy()
     soulGuitarWidgetGui:Destroy()
     portalSoruWidgetGui:Destroy()
+    if fpsOverlayGui then fpsOverlayGui:Destroy() end
     ClearESP()
 end)
-
 local sidebar = Instance.new("Frame", mainFrame)
 sidebar.Size = UDim2.new(0, 115, 1, 0)
 sidebar.BackgroundTransparency = 1
-
 local mainTitle = Instance.new("TextLabel", sidebar)
 mainTitle.Text = "SACRED AHK"
 mainTitle.Font = Enum.Font.GothamBold
@@ -278,7 +251,6 @@ mainTitle.Position = UDim2.new(0, 14, 0, 14)
 mainTitle.BackgroundTransparency = 1
 mainTitle.TextXAlignment = Enum.TextXAlignment.Left
 table.insert(themeTexts, mainTitle)
-
 local subTitle = Instance.new("TextLabel", sidebar)
 subTitle.Text = "by iSacredRivals"
 subTitle.Font = Enum.Font.Gotham
@@ -288,13 +260,11 @@ subTitle.Size = UDim2.new(1, 0, 0, 14)
 subTitle.Position = UDim2.new(0, 14, 0, 30)
 subTitle.BackgroundTransparency = 1
 subTitle.TextXAlignment = Enum.TextXAlignment.Left
-
 local PagesContainer = Instance.new("Frame", mainFrame)
 PagesContainer.Size = UDim2.new(0, 320, 1, -55)
 PagesContainer.Position = UDim2.new(0, 125, 0, 45)
 PagesContainer.BackgroundTransparency = 1
 PagesContainer.ClipsDescendants = false
-
 local function createScrollingPage()
     local sf = Instance.new("ScrollingFrame", PagesContainer)
     sf.Size = UDim2.new(1, 0, 1, 0)
@@ -309,21 +279,21 @@ local function createScrollingPage()
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     return sf
 end
-
 local StatsPage = createScrollingPage()
 local CombatPage = createScrollingPage()
 local GlitchesPage = createScrollingPage()
 local CamLockPage = createScrollingPage()
 local SoruPage = createScrollingPage()
+local AppearancePage = createScrollingPage()
+local BlacklistPage = createScrollingPage()
+local MiscPage = createScrollingPage()
 StatsPage.Visible = true
-
 local RightPanel = Instance.new("Frame", mainFrame)
 RightPanel.Size = UDim2.new(0, 160, 1, -55)
 RightPanel.Position = UDim2.new(0, 295, 0, 45)
 RightPanel.BackgroundColor3 = COLORS.PanelBG
 RightPanel.Visible = false
 Instance.new("UICorner", RightPanel).CornerRadius = UDim.new(0, 8)
-
 local ListScroll = Instance.new("ScrollingFrame", RightPanel)
 ListScroll.Size = UDim2.new(1, -10, 1, -30)
 ListScroll.Position = UDim2.new(0, 5, 0, 24)
@@ -332,7 +302,6 @@ ListScroll.BorderSizePixel = 0
 ListScroll.ScrollBarThickness = 3
 ListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 Instance.new("UIListLayout", ListScroll).Padding = UDim.new(0, 4)
-
 local DropLabel = Instance.new("TextButton", ListScroll)
 DropLabel.Name = "DropLabel"
 DropLabel.Size = UDim2.new(1, 0, 0, 24)
@@ -343,15 +312,16 @@ DropLabel.TextColor3 = currentThemeColor
 DropLabel.TextSize = 8.5
 Instance.new("UICorner", DropLabel).CornerRadius = UDim.new(0, 4)
 table.insert(themeTexts, DropLabel)
-
 local categories = {
     { name = "Player Stats", page = StatsPage, y = 50 },
-    { name = "Combat Main", page = CombatPage, y = 74 },
-    { name = "Glitches", page = GlitchesPage, y = 98 },
-    { name = "Cam Lock", page = CamLockPage, y = 122 },
-    { name = "Soru Engine", page = SoruPage, y = 146 },
+    { name = "Combat Main", page = CombatPage, y = 68 },
+    { name = "Glitches", page = GlitchesPage, y = 86 },
+    { name = "Cam Lock", page = CamLockPage, y = 104 },
+    { name = "Soru Engine", page = SoruPage, y = 122 },
+    { name = "Appearance", page = AppearancePage, y = 140 },
+    { name = "Aim Blacklist", page = BlacklistPage, y = 158 },
+    { name = "Misc", page = MiscPage, y = 176 },
 }
-
 local activeTabBtn = nil
 for _, cat in ipairs(categories) do
     local btn = Instance.new("TextButton", sidebar)
@@ -363,12 +333,10 @@ for _, cat in ipairs(categories) do
     btn.Position = UDim2.new(0, 15, 0, cat.y)
     btn.BackgroundTransparency = 1
     btn.TextXAlignment = Enum.TextXAlignment.Left
-
     if cat.page == StatsPage then
         activeTabBtn = btn
         table.insert(themeTexts, btn)
     end
-
     btn.MouseButton1Click:Connect(function()
         if activeTabBtn then
             activeTabBtn.TextColor3 = COLORS.TextGray
@@ -380,6 +348,7 @@ for _, cat in ipairs(categories) do
         btn.TextColor3 = currentThemeColor
         StatsPage.Visible = false; CombatPage.Visible = false; GlitchesPage.Visible = false
         CamLockPage.Visible = false; SoruPage.Visible = false
+        AppearancePage.Visible = false; BlacklistPage.Visible = false; MiscPage.Visible = false
         cat.page.Visible = true
         if cat.name == "Soru Engine" then
             RightPanel.Visible = true
@@ -390,7 +359,6 @@ for _, cat in ipairs(categories) do
         end
     end)
 end
-
 -- ============================================================
 -- HELPERS DE UI
 -- ============================================================
@@ -410,13 +378,11 @@ local function createModuleCard(name, height, targetPage)
     title.TextXAlignment = Enum.TextXAlignment.Left
     return card
 end
-
 local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -12, 0, 20)
     frame.Position = UDim2.new(0, 6, 0, yPos)
     frame.BackgroundTransparency = 1
-
     local label = Instance.new("TextLabel", frame)
     label.Text = labelText
     label.Font = Enum.Font.Gotham
@@ -425,7 +391,6 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     label.Size = UDim2.new(0.65, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
-
     local clickBtn = Instance.new("TextButton", frame)
     clickBtn.Size = UDim2.new(0, 30, 0, 13)
     clickBtn.Position = UDim2.new(1, -30, 0.5, -6)
@@ -436,7 +401,6 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     clickBtn.TextColor3 = COLORS.TextWhite
     Instance.new("UICorner", clickBtn).CornerRadius = UDim.new(0, 4)
     if defaultState then table.insert(themeFrames, clickBtn) end
-
     local state = defaultState
     local function refresh()
         if state then
@@ -450,7 +414,6 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
             if idx then table.remove(themeFrames, idx) end
         end
     end
-
     local function setExternalState(newState)
         if state == newState then return end
         state = newState
@@ -458,7 +421,6 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
         callback(state)
         updateWidgetsVisuals()
     end
-
     clickBtn.MouseButton1Click:Connect(function()
         state = not state
         refresh()
@@ -469,13 +431,11 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     
     return setExternalState, clickBtn
 end
-
 local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter, setter, suffix)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -12, 0, 28)
     frame.Position = UDim2.new(0, 6, 0, yPos)
     frame.BackgroundTransparency = 1
-
     local label = Instance.new("TextLabel", frame)
     label.Text = labelText
     label.Font = Enum.Font.Gotham
@@ -484,7 +444,6 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     label.Size = UDim2.new(0.5, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
-
     local minus = Instance.new("TextButton", frame)
     minus.Size = UDim2.new(0, 22, 0, 18)
     minus.Position = UDim2.new(1, -60, 0.5, -9)
@@ -494,7 +453,6 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     minus.BackgroundColor3 = COLORS.ToggleOff
     minus.TextColor3 = COLORS.TextWhite
     Instance.new("UICorner", minus).CornerRadius = UDim.new(0, 4)
-
     local valueLabel = Instance.new("TextLabel", frame)
     valueLabel.Size = UDim2.new(0, 40, 0, 18)
     valueLabel.Position = UDim2.new(1, -36, 0.5, -9)
@@ -504,7 +462,6 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     valueLabel.Font = Enum.Font.GothamBold
     valueLabel.TextSize = 9
     table.insert(themeTexts, valueLabel)
-
     local plus = Instance.new("TextButton", frame)
     plus.Size = UDim2.new(0, 22, 0, 18)
     plus.Position = UDim2.new(1, -12, 0.5, -9)
@@ -514,7 +471,6 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     plus.BackgroundColor3 = COLORS.ToggleOff
     plus.TextColor3 = COLORS.TextWhite
     Instance.new("UICorner", plus).CornerRadius = UDim.new(0, 4)
-
     minus.MouseButton1Click:Connect(function()
         local v = math.max(getter() - step, minVal); setter(v)
         valueLabel.Text = tostring(v) .. suffix
@@ -526,14 +482,11 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     
     return valueLabel
 end
-
 -- ============================================================
 -- POBLAR PESTAÑAS
 -- ============================================================
-
 -- PLAYER STATS TAB
 local statsCard = createModuleCard("Player Profile", 320, StatsPage)
-
 local profileImg = Instance.new("ImageLabel", statsCard)
 profileImg.Size = UDim2.new(0, 80, 0, 80)
 profileImg.Position = UDim2.new(0.5, -40, 0, 20)
@@ -544,7 +497,6 @@ Instance.new("UICorner", profileImg).CornerRadius = UDim.new(0, 40) -- Círculo 
 local pStroke = Instance.new("UIStroke", profileImg)
 pStroke.Color = currentThemeColor; pStroke.Thickness = 2
 table.insert(themeStrokes, pStroke)
-
 local nameLabel = Instance.new("TextLabel", statsCard)
 nameLabel.Text = player.Name
 nameLabel.Font = Enum.Font.GothamBlack
@@ -554,7 +506,6 @@ nameLabel.Size = UDim2.new(1, 0, 0, 22)
 nameLabel.Position = UDim2.new(0, 0, 0, 110)
 nameLabel.BackgroundTransparency = 1
 table.insert(themeTexts, nameLabel)
-
 local levelLabel = Instance.new("TextLabel", statsCard)
 levelLabel.Text = "Level: Loading..."
 levelLabel.Font = Enum.Font.GothamBold
@@ -563,7 +514,6 @@ levelLabel.TextColor3 = COLORS.TextWhite
 levelLabel.Size = UDim2.new(1, 0, 0, 18)
 levelLabel.Position = UDim2.new(0, 0, 0, 135)
 levelLabel.BackgroundTransparency = 1
-
 local bountyLabel = Instance.new("TextLabel", statsCard)
 bountyLabel.Text = "Bounty: Loading..."
 bountyLabel.Font = Enum.Font.GothamBold
@@ -572,14 +522,12 @@ bountyLabel.TextColor3 = COLORS.TextWhite
 bountyLabel.Size = UDim2.new(1, 0, 0, 18)
 bountyLabel.Position = UDim2.new(0, 0, 0, 155)
 bountyLabel.BackgroundTransparency = 1
-
 -- Divider
 local div = Instance.new("Frame", statsCard)
 div.Size = UDim2.new(1, -20, 0, 1)
 div.Position = UDim2.new(0, 10, 0, 185)
 div.BackgroundColor3 = COLORS.ToggleOff
 div.BorderSizePixel = 0
-
 local statsTitle = Instance.new("TextLabel", statsCard)
 statsTitle.Text = "📊 Script Usage Stats"
 statsTitle.Font = Enum.Font.GothamBold
@@ -590,7 +538,6 @@ statsTitle.Position = UDim2.new(0, 10, 0, 190)
 statsTitle.BackgroundTransparency = 1
 statsTitle.TextXAlignment = Enum.TextXAlignment.Left
 table.insert(themeTexts, statsTitle)
-
 -- NUEVO DISEÑO DE STATS BONITOS
 local function createStatLabel(parent, yPos, icon, labelText)
     local frame = Instance.new("Frame", parent)
@@ -621,11 +568,9 @@ local function createStatLabel(parent, yPos, icon, labelText)
     
     return textLbl
 end
-
 local timeLbl = createStatLabel(statsCard, 205, "⏱️", "Time Used: 00:00:00")
 local execLbl = createStatLabel(statsCard, 232, "⚙️", "Executions: 0")
 local bountyLblStats = createStatLabel(statsCard, 259, "💰", "Bounty Gained: 0")
-
 -- Helper para formatear números (ej: 2800 -> 2,800)
 local function formatNumber(n)
     if type(n) ~= "number" then return tostring(n) end
@@ -637,7 +582,6 @@ local function formatNumber(n)
     end
     return formatted
 end
-
 -- Busca el valor en leaderstats o Data (Fix para Blox Fruits)
 local function getGameStat(statName)
     local val = nil
@@ -655,14 +599,12 @@ local function getGameStat(statName)
     end
     return val
 end
-
 -- FIX DEL BUG DE BOUNTY: Devuelve el valor real sin importar si es Pirata o Marine
 local function getBountyValue()
     local b = getGameStat("Bounty") or 0
     local h = getGameStat("Honor") or 0
     return math.max(b, h)
 end
-
 -- Loop para actualizar UI
 spawn(function()
     -- Carga oficial de la imagen de perfil (robujo el thumbnail)
@@ -672,14 +614,12 @@ spawn(function()
             profileImg.Image = content
         end
     end)
-
     -- FIX BOUNTY: Esperar a que el juego cargue los datos para guardar el Bounty Inicial correctamente
     while not player:FindFirstChild("leaderstats") and not player:FindFirstChild("Data") do
         task.wait(0.5)
     end
     task.wait(1)
     startBounty = getBountyValue()
-
     while true do
         wait(1)
         local currBounty = getBountyValue()
@@ -691,7 +631,6 @@ spawn(function()
         local m = math.floor((elapsed % 3600) / 60)
         local s = math.floor(elapsed % 60)
         local timeStr = string.format("%02d:%02d:%02d", h, m, s)
-
         local levelVal = getGameStat("Level") or "N/A"
         if type(levelVal) == "number" then levelVal = formatNumber(levelVal) end
         
@@ -703,21 +642,16 @@ spawn(function()
         bountyLblStats.Text = "Bounty Gained: " .. formatNumber(bountyGained)
     end
 end)
-
-
 -- COMBAT MAIN TAB
 local c1 = createModuleCard("Silent Aim", 75, CombatPage)
 local setSilentPlayers, silentPlayersBtn = addToggleElement(c1, "Silent Players", false, 24, function(v) SilentAimPlayersEnabled = v end)
 local setSilentNpcs, silentNpcsBtn = addToggleElement(c1, "Silent NPCs", false, 48, function(v) SilentAimNPCsEnabled = v end)
-
 local c2 = createModuleCard("Fast Attack", 90, CombatPage)
 addToggleElement(c2, "Fast Attack", false, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
 addStepper(c2, "Range:", 52, 100, 5000, 50, function() return FastAttackRange end, function(v) FastAttackRange = v end, "")
-
 local c3 = createModuleCard("Movement", 240, CombatPage)
 addToggleElement(c3, "Walk Speed", false, 24, function(v) WalkSpeedEnabled = v end)
 addStepper(c3, "Speed:", 52, 16, 500, 50, function() return WalkSpeedValue end, function(v) WalkSpeedValue = v end, "")
-
 local setDashToggleState = addToggleElement(c3, "Dash Distance", false, 88, function(v) 
     DashEnabled = v 
     if v then startDashLoop() else stopDashLoop() end 
@@ -726,21 +660,16 @@ local dashDistLabel = addStepper(c3, "Distance:", 116, 1, 300, 10, function() re
     DashLengthDist = v
     if DashEnabled then applyDashInstantly() end
 end, "")
-
 addToggleElement(c3, "Noclip", false, 152, function(v) SetNoclip(v) end)
 addToggleElement(c3, "Walk on Water", false, 176, function(v) WalkOnWaterEnabled = v end)
-
 local c4 = createModuleCard("Auto V4", 50, CombatPage)
 addToggleElement(c4, "Smart Auto V4", false, 24, function(v) SmartAutoV4Enabled = v end)
-
 -- Glitches: Sanguine Z Manual
 local glitchCard = createModuleCard("Sanguine Z Manual", 50, GlitchesPage)
 local lagGui = nil
-
 local DROP_TO_FPS_MANUAL = 20
 local LAG_DURATION_MANUAL = 0.43
 local lagBusyManual = false
-
 local function dropFPSManual()
     if lagBusyManual then return end
     lagBusyManual = true
@@ -758,11 +687,9 @@ local function dropFPSManual()
     task.wait(LAG_DURATION_MANUAL + 0.03)
     lagBusyManual = false
 end
-
 local function destroyLagGui()
     if lagGui then lagGui:Destroy(); lagGui = nil end
 end
-
 local function createLagGui()
     destroyLagGui()
     local gui = Instance.new("ScreenGui")
@@ -770,7 +697,6 @@ local function createLagGui()
     gui.ResetOnSpawn = false
     gui.Parent = playerGui
     lagGui = gui
-
     local frame = Instance.new("Frame", gui)
     frame.Size = UDim2.new(0, 90, 0, 42)
     frame.Position = UDim2.new(0.37, 0, 0.26, 0)
@@ -779,7 +705,6 @@ local function createLagGui()
     frame.Draggable = true
     frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
     local zBtn = Instance.new("TextButton", frame)
     zBtn.Size = UDim2.new(0, 40, 0, 30)
     zBtn.Position = UDim2.new(0, 12, 0, 6)
@@ -790,7 +715,6 @@ local function createLagGui()
     zBtn.Font = Enum.Font.GothamBold
     zBtn.BorderSizePixel = 0
     Instance.new("UICorner", zBtn).CornerRadius = UDim.new(0, 8)
-
     local close = Instance.new("TextButton", frame)
     close.Size = UDim2.new(0, 18, 0, 18)
     close.Position = UDim2.new(1, -22, 0, 3)
@@ -801,15 +725,12 @@ local function createLagGui()
     close.TextColor3 = Color3.new(1, 1, 1)
     close.BorderSizePixel = 0
     Instance.new("UICorner", close).CornerRadius = UDim.new(1, 0)
-
     zBtn.MouseButton1Click:Connect(dropFPSManual)
     close.MouseButton1Click:Connect(function() gui.Enabled = false end)
 end
-
 addToggleElement(glitchCard, "Sanguine Z Manual", false, 24, function(v)
     if v then createLagGui() else destroyLagGui() end
 end)
-
 -- Glitches: Sanguine Z Auto
 local sanguineAutoCard = createModuleCard("Sanguine Z Auto", 50, GlitchesPage)
 local setSanguineState, sanguineBtn = addToggleElement(sanguineAutoCard, "Sanguine Z Auto", false, 24, function(v)
@@ -820,7 +741,6 @@ local setSanguineState, sanguineBtn = addToggleElement(sanguineAutoCard, "Sangui
     end
     updateWidgetsVisuals()
 end)
-
 SanguineAutoWidget.MouseButton1Click:Connect(function()
     local newState = not SanguineAutoEnabled
     SanguineAutoEnabled = newState
@@ -834,27 +754,23 @@ SanguineAutoWidget.MouseButton1Click:Connect(function()
         sanguineBtn.BackgroundColor3 = COLORS.ToggleOff
         sanguineBtn.Text = "OFF"
     end
-
     if newState then startSanguineAutoWatcher() else 
         if SanguineAutoConnection then SanguineAutoConnection:Disconnect(); SanguineAutoConnection = nil end 
     end
     updateWidgetsVisuals()
 end)
-
 -- Glitches: No Animations
 local noAnimCard = createModuleCard("No Animations", 50, GlitchesPage)
 addToggleElement(noAnimCard, "No Animations", false, 24, function(v)
     NoAnimEnabled = v
     if v then StartNoAnimLoop() else if NoAnimConnection then NoAnimConnection:Disconnect(); NoAnimConnection = nil end end
 end)
-
 -- Glitches: Super Jump
 local superJumpCard = createModuleCard("Súper Jump", 50, GlitchesPage)
 local setSuperJumpState = addToggleElement(superJumpCard, "Activar SJump", false, 24, function(v)
     SuperJumpEnabled = v
     updateWidgetsVisuals()
 end)
-
 -- Glitches: Soul Guitar Glitch
 local soulGuitarCard = createModuleCard("Soul Guitar Glitch (Beta)", 75, GlitchesPage) 
 local setSoulGuitarState, soulGuitarBtn = addToggleElement(soulGuitarCard, "Soul Guitar Glitch (Beta)", false, 24, function(v)
@@ -880,7 +796,6 @@ local setSoulGuitarState, soulGuitarBtn = addToggleElement(soulGuitarCard, "Soul
     if dashDistLabel then dashDistLabel.Text = tostring(DashLengthDist) end
     if DashEnabled then applyDashInstantly() end
 end)
-
 addStepper(soulGuitarCard, "Dash Speed:", 52, 1, 300, 10, function() return SoulGuitarDashLength end, function(v) 
     SoulGuitarDashLength = v
     if SoulGuitarJumpEnabled then
@@ -889,7 +804,6 @@ addStepper(soulGuitarCard, "Dash Speed:", 52, 1, 300, 10, function() return Soul
         if DashEnabled then applyDashInstantly() end
     end
 end, "")
-
 SoulGuitarWidget.MouseButton1Click:Connect(function()
     local newState = not SoulGuitarJumpEnabled
     SoulGuitarJumpEnabled = newState
@@ -911,21 +825,18 @@ SoulGuitarWidget.MouseButton1Click:Connect(function()
     if DashEnabled then applyDashInstantly() end
     updateWidgetsVisuals()
 end)
-
 -- Glitches: Anti Lava
 local antiLavaCard = createModuleCard("Anti Lava", 50, GlitchesPage)
 addToggleElement(antiLavaCard, "Anti Lava", false, 24, function(v)
     antiLavaActive = v
     if v then startAntiLava() else stopAntiLava() end
 end)
-
 -- Glitches: Delete Ghost Ship
 local deleteShipCard = createModuleCard("Delete Ghost Ship (Sea 2)", 50, GlitchesPage)
 addToggleElement(deleteShipCard, "Delete Ghost Ship", false, 24, function(v)
     deleteShipActive = v
     if v then startDeleteShipLoop() end
 end)
-
 -- FFlags1
 local fflagsCard = createModuleCard("FFlags 1", 50, GlitchesPage)
 addToggleElement(fflagsCard, "Activar FFlags1", false, 24, function(v)
@@ -944,7 +855,6 @@ addToggleElement(fflagsCard, "Activar FFlags1", false, 24, function(v)
         end)
     end
 end)
-
 -- Cam Lock
 local aimlockCard = createModuleCard("Camera Aimlock", 75, CamLockPage)
 local setPlayerLockState = addToggleElement(aimlockCard, "Lock Players", false, 24, function(v)
@@ -955,7 +865,6 @@ local setNpcLockState = addToggleElement(aimlockCard, "Lock NPCs", false, 48, fu
     NpcWidgetActive = v
     if not v then AimlockNpcEnabled = false end
 end)
-
 PlayerWidgetBtn.MouseButton1Click:Connect(function()
     if not PlayerWidgetActive then setPlayerLockState(true) end
     AimlockPlayerEnabled = not AimlockPlayerEnabled
@@ -968,13 +877,11 @@ NpcWidgetBtn.MouseButton1Click:Connect(function()
     if AimlockNpcEnabled then totalExecutions = totalExecutions + 1 end
     updateWidgetsVisuals()
 end)
-
-local espCard = createModuleCard("ESP", 50, CamLockPage)
-addToggleElement(espCard, "ESP Names", false, 24, function(v)
+local espCard = createModuleCard("ESP Players", 50, CamLockPage)
+addToggleElement(espCard, "ESP Players", false, 24, function(v)
     ESPEnabled = v
     if v then UpdateESP() else ClearESP() end
 end)
-
 -- Soru Engine
 local soruCard = createModuleCard("Soru & Bypass", 120, SoruPage)
 addToggleElement(soruCard, "Infinite Soru", false, 24, function(v)
@@ -982,7 +889,6 @@ addToggleElement(soruCard, "Infinite Soru", false, 24, function(v)
     if player.Character then enforceSoru(player.Character) end
 end)
 addToggleElement(soruCard, "Soru Aimbot (TP)", false, 48, function(v) SoruAimbotEnabled = v end)
-
 local setPortalSoruState, portalSoruBtn = addToggleElement(soruCard, "Portal Soru Combo", false, 72, function(v)
     PortalSoruEnabled = v
     PortalSoruWidgetVisible = v
@@ -993,19 +899,16 @@ local setPortalSoruState, portalSoruBtn = addToggleElement(soruCard, "Portal Sor
     end
     updateWidgetsVisuals()
 end)
-
 PortalSoruWidget.MouseButton1Click:Connect(function()
     local newState = not PortalSoruEnabled
     setPortalSoruState(newState)
 end)
-
 local function refreshPlayerListUI()
     for _, item in ipairs(ListScroll:GetChildren()) do
         if item:IsA("TextButton") and item.Name ~= "DropLabel" and item.Name ~= "RefreshBtn" then
             item:Destroy()
         end
     end
-
     local nearestBtn = Instance.new("TextButton", ListScroll)
     nearestBtn.Name = "NearestBtn"
     nearestBtn.Size = UDim2.new(1, 0, 0, 22)
@@ -1021,7 +924,6 @@ local function refreshPlayerListUI()
         DropLabel.Text = "🎯 Selector: Nearest"
         refreshPlayerListUI()
     end)
-
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local isSelected = (SelectedSoruTarget == p.Name)
@@ -1042,7 +944,6 @@ local function refreshPlayerListUI()
             end)
         end
     end
-
     if not ListScroll:FindFirstChild("RefreshBtn") then
         local refreshBtn = Instance.new("TextButton", ListScroll)
         refreshBtn.Name = "RefreshBtn"
@@ -1056,7 +957,6 @@ local function refreshPlayerListUI()
         refreshBtn.MouseButton1Click:Connect(refreshPlayerListUI)
     end
 end
-
 Players.PlayerAdded:Connect(refreshPlayerListUI)
 Players.PlayerRemoving:Connect(refreshPlayerListUI)
 DropLabel.MouseButton1Click:Connect(function()
@@ -1065,7 +965,173 @@ DropLabel.MouseButton1Click:Connect(function()
     refreshPlayerListUI()
 end)
 refreshPlayerListUI()
-
+-- ============================================================
+-- NUEVAS PÁGINAS (APPEARANCE, BLACKLIST, MISC)
+-- ============================================================
+-- FPS/Ping Overlay
+local fpsOverlayGui = Instance.new("ScreenGui")
+fpsOverlayGui.Name = "SacredUI_FPSOverlay"
+fpsOverlayGui.ResetOnSpawn = false
+fpsOverlayGui.Parent = playerGui
+local fpsBar = Instance.new("Frame", fpsOverlayGui)
+fpsBar.Size = UDim2.new(0, 180, 0, 22)
+fpsBar.Position = UDim2.new(0.5, -90, 0, 4)
+fpsBar.BackgroundColor3 = Color3.fromRGB(10, 8, 14)
+fpsBar.BackgroundTransparency = 0.3
+fpsBar.Visible = false
+Instance.new("UICorner", fpsBar).CornerRadius = UDim.new(0, 6)
+local fpsStroke = Instance.new("UIStroke", fpsBar)
+fpsStroke.Color = currentThemeColor
+fpsStroke.Thickness = 1
+table.insert(themeStrokes, fpsStroke)
+local fpsLabel = Instance.new("TextLabel", fpsBar)
+fpsLabel.Size = UDim2.new(1, 0, 1, 0)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Text = "FPS: 0 | Ping: 0ms"
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 10
+fpsLabel.TextColor3 = COLORS.TextWhite
+table.insert(themeTexts, fpsLabel)
+spawn(function()
+    while true do
+        wait(0.5)
+        if FPSPingOverlayEnabled then
+            fpsBar.Visible = true
+            fpsLabel.Text = "FPS: " .. tostring(currentFPS) .. " | Ping: " .. tostring(currentPing) .. "ms"
+        else
+            fpsBar.Visible = false
+        end
+    end
+end)
+-- Appearance Page
+local fakeBodyCard = createModuleCard("Fake Body", 75, AppearancePage)
+addToggleElement(fakeBodyCard, "Fake Korblox", false, 24, function(v)
+    FakeKorbloxEnabled = v
+    if v then applyFakeKorblox(player.Character) else removeFakeKorblox(player.Character) end
+end)
+addToggleElement(fakeBodyCard, "Fake Headless", false, 48, function(v)
+    FakeHeadlessEnabled = v
+    if v then applyFakeHeadless(player.Character) else removeFakeHeadless(player.Character) end
+end)
+local auraCard = createModuleCard("Aura VFX", 150, AppearancePage)
+local auraSetters = {}
+local auraNames = {"Inferno", "Electric", "DarkSpirit", "Toxic", "Frost"}
+local auraIcons = {"🔥", "⚡", "💜", "💚", "❄️"}
+for i, auraName in ipairs(auraNames) do
+    local yPos = 24 + (i - 1) * 24
+    local setter, btn = addToggleElement(auraCard, auraIcons[i] .. " " .. auraName, false, yPos, function(v)
+        if v then
+            for j, otherName in ipairs(auraNames) do
+                if otherName ~= auraName and auraSetters[otherName] then
+                    auraSetters[otherName](false)
+                end
+            end
+            ApplyAura(auraName)
+        else
+            ClearAura()
+        end
+    end)
+    auraSetters[auraName] = setter
+end
+-- Blacklist Page
+local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
+local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
+blacklistScroll.Size = UDim2.new(1, -8, 1, -45)
+blacklistScroll.BackgroundColor3 = COLORS.PanelBG
+blacklistScroll.BorderSizePixel = 0
+blacklistScroll.ScrollBarThickness = 4
+blacklistScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+blacklistScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Instance.new("UICorner", blacklistScroll).CornerRadius = UDim.new(0, 6)
+Instance.new("UIListLayout", blacklistScroll).Padding = UDim.new(0, 4)
+Instance.new("UIPadding", blacklistScroll).PaddingTop = UDim.new(0, 6)
+local function refreshBlacklistUI()
+    for _, item in ipairs(blacklistScroll:GetChildren()) do
+        if item:IsA("Frame") then item:Destroy() end
+    end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then
+            local isBlacklisted = BlacklistedPlayers[p.Name] == true
+            local row = Instance.new("Frame", blacklistScroll)
+            row.Size = UDim2.new(1, -10, 0, 26)
+            row.BackgroundColor3 = COLORS.Background
+            row.BorderSizePixel = 0
+            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+            Instance.new("UIPadding", row).PaddingLeft = UDim.new(0, 8)
+            
+            local nameL = Instance.new("TextLabel", row)
+            nameL.Text = p.Name
+            nameL.Font = Enum.Font.GothamSemibold
+            nameL.TextSize = 9
+            nameL.TextColor3 = isBlacklisted and Color3.fromRGB(255, 80, 80) or COLORS.TextWhite
+            nameL.Size = UDim2.new(0.7, 0, 1, 0)
+            nameL.BackgroundTransparency = 1
+            nameL.TextXAlignment = Enum.TextXAlignment.Left
+            table.insert(themeTexts, nameL)
+            
+            local toggleBtn = Instance.new("TextButton", row)
+            toggleBtn.Size = UDim2.new(0, 40, 0, 16)
+            toggleBtn.Position = UDim2.new(1, -48, 0.5, -8)
+            toggleBtn.BackgroundColor3 = isBlacklisted and Color3.fromRGB(255, 60, 60) or COLORS.ToggleOff
+            toggleBtn.Text = isBlacklisted and "BAN" or "OK"
+            toggleBtn.Font = Enum.Font.GothamBold
+            toggleBtn.TextSize = 7
+            toggleBtn.TextColor3 = COLORS.TextWhite
+            Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
+            
+            toggleBtn.MouseButton1Click:Connect(function()
+                BlacklistedPlayers[p.Name] = not (BlacklistedPlayers[p.Name] == true)
+                refreshBlacklistUI()
+            end)
+        end
+    end
+end
+Players.PlayerAdded:Connect(refreshBlacklistUI)
+Players.PlayerRemoving:Connect(refreshBlacklistUI)
+refreshBlacklistUI()
+-- Misc Page
+local miscCard = createModuleCard("Performance", 50, MiscPage)
+addToggleElement(miscCard, "FPS / Ping Overlay", false, 24, function(v)
+    FPSPingOverlayEnabled = v
+end)
+local LANG = {
+    EN = {
+        playerStats = "Player Stats", combatMain = "Combat Main", glitches = "Glitches",
+        camLock = "Cam Lock", soruEngine = "Soru Engine", appearance = "Appearance",
+        aimBlacklist = "Aim Blacklist", misc = "Misc",
+        espPlayers = "ESP Players", fpsPing = "FPS / Ping Overlay", language = "Language",
+        performance = "Performance", fakeBody = "Fake Body", auraVfx = "Aura VFX",
+        blacklistTitle = "Silent Aim Blacklist", playerProfile = "Player Profile"
+    },
+    ES = {
+        playerStats = "Estadísticas", combatMain = "Combate", glitches = "Glitches",
+        camLock = "Cámara Lock", soruEngine = "Motor Soru", appearance = "Apariencia",
+        aimBlacklist = "Lista Negra", misc = "Misceláneos",
+        espPlayers = "ESP Jugadores", fpsPing = "FPS / Ping", language = "Idioma",
+        performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
+        blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador"
+    }
+}
+local langCard = createModuleCard("Language / Idioma", 75, MiscPage)
+local langBtnEN = Instance.new("TextButton", langCard)
+langBtnEN.Size = UDim2.new(0, 55, 0, 18)
+langBtnEN.Position = UDim2.new(0, 10, 0, 28)
+langBtnEN.BackgroundColor3 = currentThemeColor
+langBtnEN.Text = "English"
+langBtnEN.Font = Enum.Font.GothamBold
+langBtnEN.TextSize = 8
+langBtnEN.TextColor3 = COLORS.TextWhite
+Instance.new("UICorner", langBtnEN).CornerRadius = UDim.new(0, 4)
+table.insert(themeFrames, langBtnEN)
+local langBtnES = Instance.new("TextButton", langCard)
+langBtnES.Size = UDim2.new(0, 55, 0, 18)
+langBtnES.Position = UDim2.new(0, 72, 0, 28)
+langBtnES.BackgroundColor3 = COLORS.ToggleOff
+langBtnES.Text = "Español"
+langBtnES.Font = Enum.Font.GothamBold
+langBtnES.TextSize = 8
+langBtnES.TextColor3 = COLORS.TextWhite
+Instance.new("UICorner", langBtnES).CornerRadius = UDim.new(0, 4)
 -- ============================================================
 -- THEME SELECTOR DROPDOWN
 -- ============================================================
@@ -1079,7 +1145,6 @@ themeSelector.Position = UDim2.new(1, -175, 0, 12)
 themeSelector.BackgroundColor3 = COLORS.PanelBG
 Instance.new("UICorner", themeSelector).CornerRadius = UDim.new(0, 5)
 table.insert(themeTexts, themeSelector)
-
 local dropdownHeight = 22 * 9 + 8
 local themeDropdown = Instance.new("Frame", themeSelector)
 themeDropdown.Size = UDim2.new(1, 0, 0, dropdownHeight)
@@ -1088,7 +1153,6 @@ themeDropdown.BackgroundColor3 = COLORS.PanelBG
 themeDropdown.Visible = false
 Instance.new("UICorner", themeDropdown).CornerRadius = UDim.new(0, 5)
 Instance.new("UIListLayout", themeDropdown).Padding = UDim.new(0, 1)
-
 local function applyNewTheme(themeName)
     currentThemeColor = THEMES[themeName]
     themeSelector.Text = themeName .. "  ▼"
@@ -1106,7 +1170,6 @@ local function applyNewTheme(themeName)
     themeDropdown.Visible = false
     updateWidgetsVisuals()
 end
-
 for name, color in pairs(THEMES) do
     local opt = Instance.new("TextButton", themeDropdown)
     opt.Size = UDim2.new(1, 0, 0, 22)
@@ -1117,11 +1180,9 @@ for name, color in pairs(THEMES) do
     opt.TextColor3 = color
     opt.MouseButton1Click:Connect(function() applyNewTheme(name) end)
 end
-
 themeSelector.MouseButton1Click:Connect(function()
     themeDropdown.Visible = not themeDropdown.Visible
 end)
-
 UserInputService.InputBegan:Connect(function(input, gp)
     if not gp and input.KeyCode == Enum.KeyCode.F4 then
         if mainFrame.Visible then
@@ -1133,6 +1194,5 @@ UserInputService.InputBegan:Connect(function(input, gp)
         end
     end
 end)
-
 updateWidgetsVisuals()
-print("✅ SACRED AHK v9.6 LOADED - PORTAL WIDGET + ANIM FIX + LAVA/SHIP + PLAYER STATS LISTO")
+print("✅ SACRED AHK v10.0 LOADED - PORTAL WIDGET + ANIM FIX + LAVA/SHIP + PLAYER STATS LISTO")
