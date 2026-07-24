@@ -64,14 +64,7 @@ currentPing = 0
 currentLang = "EN"
 
 -- Sacred VFX Mod Variables
-VFX_ON = false
-TRANSFORM_ON = true
-IS_RAINBOW = true
-INCLUDE_GENERIC = false
-CURRENT_COLOR = Color3.fromRGB(255, 0, 0)
-CURRENT_SEQ = ColorSequence.new(CURRENT_COLOR)
-VFXanimatedParts = {}
-VFXoriginalColors = {}
+SacredVFX_Enabled = false
 
 -- Variables Dash
 DashEnabled = false
@@ -91,9 +84,7 @@ function SaveConfig()
         SilentPlayers = SilentAimPlayersEnabled, SilentNPCs = SilentAimNPCsEnabled, AimlockPlayers = AimlockPlayerEnabled, AimlockNPCs = AimlockNpcEnabled,
         InfSoru = SoruInfinitoEnabled, SoruAimbot = SoruAimbotEnabled, PortalSoru = PortalSoruEnabled,
         FakeKorblox = FakeKorbloxEnabled, FakeHeadless = FakeHeadlessEnabled, FPSPing = FPSPingOverlayEnabled, Language = currentLang,
-        VFX_ON = VFX_ON, TRANSFORM_ON = TRANSFORM_ON, IS_RAINBOW = IS_RAINBOW,
-        INCLUDE_GENERIC = INCLUDE_GENERIC,
-        CURRENT_COLOR_R = CURRENT_COLOR.R, CURRENT_COLOR_G = CURRENT_COLOR.G, CURRENT_COLOR_B = CURRENT_COLOR.B
+        SacredVFX = SacredVFX_Enabled
     }
     pcall(function() writefile("SacredAHK_Config.json", HttpService:JSONEncode(conf)) end)
 end
@@ -111,13 +102,11 @@ function LoadConfig()
             if conf.Language ~= nil then currentLang = conf.Language end
             if conf.FakeKorblox ~= nil then FakeKorbloxEnabled = conf.FakeKorblox end
             if conf.FakeHeadless ~= nil then FakeHeadlessEnabled = conf.FakeHeadless end
-            if conf.VFX_ON ~= nil then VFX_ON = conf.VFX_ON end
-            if conf.TRANSFORM_ON ~= nil then TRANSFORM_ON = conf.TRANSFORM_ON end
-            if conf.IS_RAINBOW ~= nil then IS_RAINBOW = conf.IS_RAINBOW end
-            if conf.INCLUDE_GENERIC ~= nil then INCLUDE_GENERIC = conf.INCLUDE_GENERIC end
-            if conf.CURRENT_COLOR_R and conf.CURRENT_COLOR_G and conf.CURRENT_COLOR_B then
-                CURRENT_COLOR = Color3.new(conf.CURRENT_COLOR_R, conf.CURRENT_COLOR_G, conf.CURRENT_COLOR_B)
-                CURRENT_SEQ = ColorSequence.new(CURRENT_COLOR)
+            if conf.SacredVFX ~= nil then 
+                SacredVFX_Enabled = conf.SacredVFX
+                if SacredVFX_Enabled then
+                    pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end)
+                end
             end
             print("✅ Config loaded!")
         end
@@ -1076,362 +1065,7 @@ spawn(function()
     end
 end)
 
--- ====================================================================
--- 🌌 SACRED VFX BACKEND LOGIC
--- ====================================================================
 
-local RAINBOW_SEQ = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 128, 0)),
-    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
-    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 170, 255)),
-    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 0, 255))
-})
-
-local PORTAL_WORDS = {
-    "portal", "rift", "tele", "cportal", "retexture", "spikes", "windbeamtrail", 
-    "floorportal", "_windbeam", "portaltemplatec", "portaldashlines", 
-    "portalchainbeam", "simpleelasticcatenary", "portalsurround", "xworldchain", 
-    "xportalsurround", "xspikes", "centralsphere", "ejectionarc", 
-    "lightningvfx", "centralspin", "ring1", "ring3", "ring5", "halo", 
-    "singularity", "inward", "portalvcolorcontrast", "portaleye", "vportal",
-    "particles",
-    "energy core", "backgroundhaze", "mainheart", "blackbackground", 
-    "backgroundheart", "circles", "lightning", "impacts", "stars", 
-    "fireshard", "blackfireshards", "activate", "groundgas", "heightened senses", 
-    "trail3", "impactshardtransparent", "lightdisolve"
-}
-
-local TRANSFORM_WORDS = {
-    "gasrig", "high poly", "busolayer1", "busolayer2", "busolayer3", 
-    "gas", "dragon", "kitsune", "venom", "flame", "ice", "magma"
-}
-
-local V_ENV_WORDS = {
-    "mainvortex", "cloudmesh", "starfield", "nebulae", "windmesh", "windmodel", 
-    "falling stars", "falling debris", "varenadimension", 
-    "portalimage", "storm", "vortexstart", "cloudlightning", 
-    "cloud-to-cloudlightning", "starfield_near", "nebulae_outer", "cloud_b_sa", 
-    "cloud_c_sa", "heavenly dimension", "hell dimension", "dimensional rift", 
-    "cloud", "groundportal", "event_skyportal", "centralsphere_neoninside"
-}
-
-local GENERIC_WORDS = {
-    "effect", "beam", "trail", "aura", "particle", "stars", "storm", "sky", 
-    "layer", "particles", "swirl", "smokewirl", "triangle", "2dcharge", 
-    "3dcharge", "linessparks", "emitlight", "charge", 
-    "celestialbody", "emitlightattachment", "chargeattachment", "auraattachment", 
-    "attach1", "attach_1b", "outline", "inner", "backlight", "cloudflash", 
-    "persistent", "cloudanchor", "dimensional", "vortex", "gradient", 
-    "lightcycle", "spiral", "meteor", "impact", "spinningwaves", "outerrays", 
-    "shockwave", "embers", "iracecandle", "trailtop", "beams0", "beams1", 
-    "circlepart", "ready", "lightslash"
-}
-
-local COMBINED_WORDS = nil
-local function getWordsToCheck()
-    if INCLUDE_GENERIC then
-        if not COMBINED_WORDS then
-            COMBINED_WORDS = {}
-            for _, w in ipairs(PORTAL_WORDS) do COMBINED_WORDS[#COMBINED_WORDS + 1] = w end
-            for _, w in ipairs(GENERIC_WORDS) do COMBINED_WORDS[#COMBINED_WORDS + 1] = w end
-        end
-        return COMBINED_WORDS
-    end
-    return PORTAL_WORDS
-end
-
-local function isVEnvironment(child)
-    local name = string.lower(child.Name)
-    for _, kw in ipairs(V_ENV_WORDS) do
-        if string.find(name, kw, 1, true) then return true end
-    end
-    if child.Parent then
-        local parentName = string.lower(child.Parent.Name)
-        for _, kw in ipairs(V_ENV_WORDS) do
-            if string.find(parentName, kw, 1, true) then return true end
-        end
-    end
-    return false
-end
-
-local function isTransformPart(child)
-    if not (player.Character and child:IsDescendantOf(player.Character)) then return false end
-    
-    local name = string.lower(child.Name)
-    for _, kw in ipairs(TRANSFORM_WORDS) do
-        if string.find(name, kw, 1, true) then return true end
-    end
-
-    local current = child.Parent
-    for i = 1, 4 do
-        if not current or current == workspace then break end
-        local pName = string.lower(current.Name)
-        for _, kw in ipairs(TRANSFORM_WORDS) do
-            if string.find(pName, kw, 1, true) then return true end
-        end
-        current = current.Parent
-    end
-    return false
-end
-
-local function isPortalRelated(child)
-    local name = string.lower(child.Name)
-    local wordsToCheck = getWordsToCheck()
-
-    for _, kw in ipairs(wordsToCheck) do
-        if string.find(name, kw, 1, true) then return true end
-    end
-
-    local current = child.Parent
-    for i = 1, 4 do
-        if not current or current == workspace then break end
-        local parentName = string.lower(current.Name)
-        for _, kw in ipairs(wordsToCheck) do
-            if string.find(parentName, kw, 1, true) then return true end
-        end
-        current = current.Parent
-    end
-    return false
-end
-
-local function applyVFX(child)
-    if not VFX_ON then return end
-    if not child or not child.Parent then return end
-
-    -- FIX LAG: Early out for non-visual objects to avoid checking 250 strings per part
-    if not (child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("SurfaceAppearance") or 
-            child:IsA("Decal") or child:IsA("Texture") or child:IsA("SpecialMesh") or 
-            child:IsA("ParticleEmitter") or child:IsA("Trail") or child:IsA("Beam") or 
-            child:IsA("Light")) then
-        return
-    end
-
-    -- 1. Entorno de la V (Piso/Nubes) - Forzar a NEGRO
-    if isVEnvironment(child) then
-        if child:IsA("SurfaceAppearance") or child:IsA("Decal") or child:IsA("Texture") then
-            pcall(function() child:Destroy() end)
-            return
-        elseif child:IsA("BasePart") or child:IsA("MeshPart") then
-            pcall(function()
-                child.Material = Enum.Material.Neon
-                child.Color = Color3.fromRGB(10, 10, 10) 
-            end)
-            VFXanimatedParts[child] = "V_Env"
-            return
-        end
-    end
-
-    -- FIX VOID: Usar gris oscuro (25,25,25) para no perder la textura
-    local isVoid = (CURRENT_COLOR.R < 0.05 and CURRENT_COLOR.G < 0.05 and CURRENT_COLOR.B < 0.05)
-    local solidColor = isVoid and Color3.fromRGB(25, 25, 25) or CURRENT_COLOR
-    local solidSeq = CURRENT_SEQ 
-
-    -- 2. Transformaciones de Fruta (Gas, Dragon)
-    if isTransformPart(child) then
-        if TRANSFORM_ON then
-            if VFXoriginalColors[child] == nil then
-                if child:IsA("SurfaceAppearance") or child:IsA("BasePart") then
-                    VFXoriginalColors[child] = child.Color
-                elseif child:IsA("SpecialMesh") then
-                    VFXoriginalColors[child] = child.VertexColor
-                end
-            end
-
-            if IS_RAINBOW then
-                if child:IsA("SurfaceAppearance") then VFXanimatedParts[child] = "SA"
-                elseif child:IsA("BasePart") then VFXanimatedParts[child] = "Part"
-                elseif child:IsA("SpecialMesh") then VFXanimatedParts[child] = "Mesh"
-                elseif child:IsA("ParticleEmitter") then VFXanimatedParts[child] = "FX" end
-            else
-                if child:IsA("SurfaceAppearance") then pcall(function() child.Color = solidColor end)
-                elseif child:IsA("BasePart") then pcall(function() child.Color = solidColor end)
-                elseif child:IsA("SpecialMesh") then pcall(function() child.VertexColor = Vector3.new(solidColor.R, solidColor.G, solidColor.B) end)
-                elseif child:IsA("ParticleEmitter") then pcall(function() child.Color = solidSeq end) end
-            end
-        else
-            if VFXoriginalColors[child] ~= nil then
-                pcall(function()
-                    if child:IsA("SurfaceAppearance") or child:IsA("BasePart") then
-                        child.Color = VFXoriginalColors[child]
-                    elseif child:IsA("SpecialMesh") then
-                        child.VertexColor = VFXoriginalColors[child]
-                    end
-                end)
-                VFXoriginalColors[child] = nil
-            end
-        end
-        return
-    end
-
-    -- 3. Portal y Efectos del Mapa
-    if not isPortalRelated(child) then return end
-
-    if IS_RAINBOW then
-        if child:IsA("SurfaceAppearance") then VFXanimatedParts[child] = "SA"
-        elseif child:IsA("Decal") or child:IsA("Texture") then pcall(function() child.Transparency = 1 end)
-        elseif child:IsA("ParticleEmitter") or child:IsA("Trail") or child:IsA("Beam") then
-            VFXanimatedParts[child] = "FX"
-            pcall(function() child.LightEmission = 1; child.LightInfluence = 0 end)
-        elseif child:IsA("SpecialMesh") then VFXanimatedParts[child] = "Mesh"
-        elseif child:IsA("BasePart") then pcall(function() child.Material = Enum.Material.Neon end); VFXanimatedParts[child] = "Part"
-        elseif child:IsA("Light") then VFXanimatedParts[child] = "Light" end
-    else
-        if child:IsA("SurfaceAppearance") then pcall(function() child.Color = solidColor end)
-        elseif child:IsA("Decal") or child:IsA("Texture") then pcall(function() child.Transparency = 1 end)
-        elseif child:IsA("ParticleEmitter") or child:IsA("Trail") or child:IsA("Beam") then
-            pcall(function() child.Color = solidSeq; if child:IsA("ParticleEmitter") then child.LightEmission = 1; child.LightInfluence = 0 end end)
-        elseif child:IsA("SpecialMesh") then pcall(function() child.VertexColor = Vector3.new(solidColor.R, solidColor.G, solidColor.B) end)
-        elseif child:IsA("BasePart") then pcall(function() child.Material = Enum.Material.Neon; child.Color = solidColor end)
-        elseif child:IsA("Light") then pcall(function() child.Color = solidColor end) end
-    end
-end
-
-function refreshVFX()
-    spawn(function()
-        VFXanimatedParts = {}
-        local count = 0
-        local descendants = workspace:GetDescendants()
-        for i = 1, #descendants do
-            applyVFX(descendants[i])
-            count = count + 1
-            if count % 500 == 0 then task.wait() end
-        end
-        if player.Character then
-            for _, d in ipairs(player.Character:GetDescendants()) do applyVFX(d) end
-        end
-    end)
-end
-
-workspace.DescendantAdded:Connect(applyVFX)
-
-player.CharacterAdded:Connect(function(char)
-    char.DescendantAdded:Connect(applyVFX)
-    task.wait(1)
-    refreshVFX()
-end)
-
--- = SISTEMA DE DIMENSIÓN AISLADA (SOLO EN LA V) = 
-local defaultFog = Lighting.FogColor 
-local defaultAmb = Lighting.Ambient 
-local defaultOutAmb = Lighting.OutdoorAmbient 
-local defaultAtmoColor = nil
-local defaultAtmoDecay = nil
-local defaultAtmoHaze = nil
-local defaultTintColor = nil
-local IN_V = false 
-local lastDimCheck = 0
-local lastUpdate = 0 
-
-RunService.Heartbeat:Connect(function(dt) 
-    if not VFX_ON then return end
-
-    lastDimCheck = lastDimCheck + dt
-    if lastDimCheck >= 1 then
-        lastDimCheck = 0
-        -- FIX LAG: Removed recursive search (true) on entire workspace. Checked Map specifically.
-        local mapFolder = workspace:FindFirstChild("Map")
-        local inVNow = false
-        if workspace:FindFirstChild("VArenaDimension") or workspace:FindFirstChild("MainVortex_LowerLayer") then
-            inVNow = true
-        elseif mapFolder and (mapFolder:FindFirstChild("VArenaDimension", true) or mapFolder:FindFirstChild("MainVortex_LowerLayer", true)) then
-            inVNow = true
-        end
-        
-        if inVNow and not IN_V then
-            IN_V = true
-            defaultFog = Lighting.FogColor
-            defaultAmb = Lighting.Ambient
-            defaultOutAmb = Lighting.OutdoorAmbient
-            for _, obj in ipairs(Lighting:GetChildren()) do
-                if obj:IsA("Atmosphere") then
-                    defaultAtmoColor = obj.Color
-                    defaultAtmoDecay = obj.Decay
-                    defaultAtmoHaze = obj.Haze
-                elseif obj:IsA("ColorCorrectionEffect") then
-                    defaultTintColor = obj.TintColor
-                end
-            end
-        elseif not inVNow and IN_V then
-            IN_V = false
-            Lighting.FogColor = defaultFog
-            Lighting.Ambient = defaultAmb
-            Lighting.OutdoorAmbient = defaultOutAmb
-            for _, obj in ipairs(Lighting:GetChildren()) do
-                if obj:IsA("Atmosphere") then
-                    if defaultAtmoColor then obj.Color = defaultAtmoColor end
-                    if defaultAtmoDecay then obj.Decay = defaultAtmoDecay end
-                    if defaultAtmoHaze then obj.Haze = defaultAtmoHaze end
-                elseif obj:IsA("ColorCorrectionEffect") then
-                    if defaultTintColor then obj.TintColor = defaultTintColor end
-                end
-            end
-            refreshVFX()
-        end
-    end
-
-    local isVoid = (not IS_RAINBOW and CURRENT_COLOR.R < 0.05 and CURRENT_COLOR.G < 0.05 and CURRENT_COLOR.B < 0.05)
-    local targetColor = IS_RAINBOW and Color3.fromHSV((os.clock() % 5) / 5, 1, 1) or CURRENT_COLOR
-    
-    -- Animación del Void (Respiración entre gris oscuro y gris claro, sin perder textura)
-    if isVoid then
-        local pulse = 15 + (math.sin(os.clock() * 3) + 1) / 2 * 35 -- Oscila entre 15 y 50
-        targetColor = Color3.fromRGB(pulse, pulse, pulse)
-    end
-
-    -- OPTIMIZACIÓN: Animar si es Arcoíris O si es Void (para que el Void respire)
-    if IS_RAINBOW or isVoid then
-        lastUpdate = lastUpdate + dt
-        if lastUpdate >= 0.05 then
-            lastUpdate = 0
-            local targetVec = Vector3.new(targetColor.R, targetColor.G, targetColor.B)
-            local targetSeq = ColorSequence.new(targetColor)
-
-            for part, type in pairs(VFXanimatedParts) do
-                if part.Parent then
-                    pcall(function()
-                        if type == "V_Env" then
-                            part.Color = Color3.fromRGB(10, 10, 10)
-                        elseif type == "Light" then part.Color = targetColor
-                        elseif type == "Mesh" then part.VertexColor = targetVec
-                        elseif type == "SA" then part.Color = targetColor
-                        elseif type == "FX" then part.Color = targetSeq
-                        else part.Color = targetColor end
-                    end)
-                else
-                    VFXanimatedParts[part] = nil
-                end
-            end
-        end
-    end
-    
-    if IN_V then
-        local lightColor = targetColor
-        local tintColor = targetColor
-
-        if isVoid then
-            lightColor = Color3.fromRGB(150, 150, 150) 
-            tintColor = Color3.fromRGB(255, 255, 255)
-            Lighting.FogColor = Color3.fromRGB(0,0,0)
-        else
-            Lighting.FogColor = targetColor
-        end
-        
-        Lighting.Ambient = lightColor
-        Lighting.OutdoorAmbient = lightColor
-        
-        for _, obj in ipairs(Lighting:GetChildren()) do
-            if obj:IsA("Atmosphere") then
-                obj.Color = isVoid and Color3.fromRGB(0, 0, 0) or targetColor
-                obj.Decay = isVoid and Color3.fromRGB(0, 0, 0) or targetColor
-                obj.Haze = 2
-            elseif obj:IsA("ColorCorrectionEffect") then
-                obj.TintColor = tintColor
-            end
-        end
-    end
-end)
 
 -- ============================================================
 -- METAMETHODS
@@ -2663,113 +2297,30 @@ for i, auraName in ipairs(auraNames) do
     auraSetters[auraName] = setter
 end
 
-local vfxCard = createModuleCard("Sacred VFX Engine", 215, AppearancePage)
-addToggleElement(vfxCard, "Portal VFX", VFX_ON, 24, function(v)
-    VFX_ON = v
-    if not VFX_ON then VFXanimatedParts = {} end
-    refreshVFX()
+local vfxCard = createModuleCard("Sacred VFX Engine", 80, AppearancePage)
+local vfxTitle = Instance.new("TextLabel", vfxCard)
+vfxTitle.Size = UDim2.new(1, -16, 0, 20)
+vfxTitle.Position = UDim2.new(0, 8, 0, 24)
+vfxTitle.BackgroundTransparency = 1
+vfxTitle.Text = "✨ Sacred VFX ✨"
+vfxTitle.Font = Enum.Font.GothamBlack
+vfxTitle.TextSize = 14
+vfxTitle.TextColor3 = COLORS.Primary
+vfxTitle.TextXAlignment = Enum.TextXAlignment.Center
+
+addToggleElement(vfxCard, "Enable External VFX Mod", SacredVFX_Enabled, 48, function(v)
+    SacredVFX_Enabled = v
+    if v then
+        pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end)
+    else
+        pcall(function()
+            if getgenv then
+                getgenv().VFX_ON = false
+                getgenv().TRANSFORM_ON = false
+            end
+        end)
+    end
 end)
-addToggleElement(vfxCard, "Fruit Transform", TRANSFORM_ON, 48, function(v)
-    TRANSFORM_ON = v
-    refreshVFX()
-end)
-addToggleElement(vfxCard, "Map Effects", INCLUDE_GENERIC, 72, function(v)
-    INCLUDE_GENERIC = v
-    COMBINED_WORDS = nil
-    refreshVFX()
-end)
-local rainbowSetter, rainbowBtn = addToggleElement(vfxCard, "Rainbow Mode", IS_RAINBOW, 96, function(v)
-    IS_RAINBOW = v
-    refreshVFX()
-end)
-
-local solidTitle = Instance.new("TextLabel", vfxCard)
-solidTitle.Size = UDim2.new(1, -16, 0, 16)
-solidTitle.Position = UDim2.new(0, 8, 0, 120)
-solidTitle.BackgroundTransparency = 1
-solidTitle.Text = "Solid Colors:"
-solidTitle.Font = Enum.Font.GothamSemibold
-solidTitle.TextSize = 10
-solidTitle.TextColor3 = COLORS.TextGray
-solidTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local solidLayout = Instance.new("Frame", vfxCard)
-solidLayout.Size = UDim2.new(1, -16, 0, 22)
-solidLayout.Position = UDim2.new(0, 8, 0, 136)
-solidLayout.BackgroundTransparency = 1
-local solidListLayout = Instance.new("UIListLayout", solidLayout)
-solidListLayout.FillDirection = Enum.FillDirection.Horizontal
-solidListLayout.Padding = UDim.new(0, 4)
-
-local colors = {
-    {color = Color3.fromRGB(255, 0, 0)}, {color = Color3.fromRGB(0, 85, 255)},
-    {color = Color3.fromRGB(0, 255, 85)}, {color = Color3.fromRGB(170, 0, 255)},
-    {color = Color3.fromRGB(255, 255, 255)}, {color = Color3.fromRGB(255, 255, 0)},
-    {color = Color3.fromRGB(20, 20, 20)}
-}
-for _, c in ipairs(colors) do
-    local cBtn = Instance.new("TextButton", solidLayout)
-    cBtn.Size = UDim2.new(0, 20, 0, 20)
-    cBtn.BackgroundColor3 = c.color
-    cBtn.Text = ""
-    Instance.new("UICorner", cBtn).CornerRadius = UDim.new(1, 0)
-    local cStroke = Instance.new("UIStroke", cBtn)
-    cStroke.Color = Color3.fromRGB(0, 0, 0)
-    cStroke.Thickness = 1
-    cBtn.MouseButton1Click:Connect(function()
-        IS_RAINBOW = false
-        CURRENT_COLOR = c.color
-        CURRENT_SEQ = ColorSequence.new(c.color)
-        rainbowSetter(false)
-        refreshVFX()
-    end)
-end
-
-local gradTitle = Instance.new("TextLabel", vfxCard)
-gradTitle.Size = UDim2.new(1, -16, 0, 16)
-gradTitle.Position = UDim2.new(0, 8, 0, 166)
-gradTitle.BackgroundTransparency = 1
-gradTitle.Text = "Custom Gradients:"
-gradTitle.Font = Enum.Font.GothamSemibold
-gradTitle.TextSize = 10
-gradTitle.TextColor3 = COLORS.TextGray
-gradTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-local gradLayout = Instance.new("Frame", vfxCard)
-gradLayout.Size = UDim2.new(1, -16, 0, 22)
-gradLayout.Position = UDim2.new(0, 8, 0, 182)
-gradLayout.BackgroundTransparency = 1
-local gradListLayout = Instance.new("UIListLayout", gradLayout)
-gradListLayout.FillDirection = Enum.FillDirection.Horizontal
-gradListLayout.Padding = UDim.new(0, 4)
-
-local customColors = {
-    {primary = Color3.fromRGB(0, 200, 255), seq = ColorSequence.new(Color3.fromRGB(0, 200, 255), Color3.fromRGB(255, 255, 255))},
-    {primary = Color3.fromRGB(255, 0, 150), seq = ColorSequence.new(Color3.fromRGB(255, 0, 150), Color3.fromRGB(200, 0, 255))},
-    {primary = Color3.fromRGB(255, 60, 0), seq = ColorSequence.new(Color3.fromRGB(255, 60, 0), Color3.fromRGB(255, 200, 0))},
-    {primary = Color3.fromRGB(50, 255, 50), seq = ColorSequence.new(Color3.fromRGB(0, 255, 100), Color3.fromRGB(0, 255, 255))},
-    {primary = Color3.fromRGB(255, 150, 0), seq = ColorSequence.new(Color3.fromRGB(255, 150, 0), Color3.fromRGB(255, 50, 50))}
-}
-for _, c in ipairs(customColors) do
-    local cBtn = Instance.new("TextButton", gradLayout)
-    cBtn.Size = UDim2.new(0, 28, 0, 20)
-    cBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    cBtn.Text = ""
-    Instance.new("UICorner", cBtn).CornerRadius = UDim.new(0, 4)
-    local cGrad = Instance.new("UIGradient", cBtn)
-    cGrad.Color = c.seq
-    cGrad.Rotation = 90
-    local cStroke = Instance.new("UIStroke", cBtn)
-    cStroke.Color = Color3.fromRGB(0, 0, 0)
-    cStroke.Thickness = 1
-    cBtn.MouseButton1Click:Connect(function()
-        IS_RAINBOW = false
-        CURRENT_COLOR = c.primary
-        CURRENT_SEQ = c.seq
-        rainbowSetter(false)
-        refreshVFX()
-    end)
-end
 -- Blacklist Page
 local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
 local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
@@ -2877,8 +2428,7 @@ local LANG = {
         performance = "Performance", fakeBody = "Fake Body", auraVfx = "Aura VFX",
         blacklistTitle = "Silent Aim Blacklist", playerProfile = "Player Profile",
         saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link",
-        sacredVFXEngine = "Sacred VFX Engine", portalVFX = "Portal VFX", fruitTransform = "Fruit Transform",
-        mapEffects = "Map Effects", rainbowMode = "Rainbow Mode", solidColors = "Solid Colors:", customGradients = "Custom Gradients:"
+        sacredVFXEngine = "Sacred VFX Engine", portalVFX = "Portal VFX", fruitTransform = "Fruit Transform"
     },
     ES = {
         playerStats = "Estadísticas", combatMain = "Combate", glitches = "Glitches",
@@ -2888,8 +2438,7 @@ local LANG = {
         performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
         blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador",
         saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord",
-        sacredVFXEngine = "Motor Sacred VFX", portalVFX = "VFX Portal", fruitTransform = "Transformación Fruta",
-        mapEffects = "Efectos del Mapa", rainbowMode = "Modo Arcoíris", solidColors = "Colores Sólidos:", customGradients = "Degradados:"
+        sacredVFXEngine = "Motor Sacred VFX", portalVFX = "VFX Portal", fruitTransform = "Transformación Fruta"
     }
 }
 local langCard = createModuleCard("Language / Idioma", 75, MiscPage)
