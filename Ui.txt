@@ -684,8 +684,13 @@ function UpdateESPData()
     end
 end
 
-RunService.RenderStepped:Connect(function()
-    UpdateESPData()
+local espUpdateTimer = 0
+RunService.RenderStepped:Connect(function(dt)
+    espUpdateTimer = espUpdateTimer + dt
+    if espUpdateTimer >= 0.2 then
+        espUpdateTimer = 0
+        UpdateESPData()
+    end
 end)
 
 spawn(function()
@@ -840,20 +845,20 @@ end
 -- AIMLOCK + SILENT AIM POSITIONS
 -- ============================================================
 RunService.RenderStepped:Connect(function()
-    PlayersPosition = SilentAimPlayersEnabled and (getClosestPlayer() and getClosestPlayer().HumanoidRootPart.Position) or nil
-    NPCPosition = SilentAimNPCsEnabled and (getClosestNPC() and getClosestNPC().HumanoidRootPart.Position) or nil
+    -- FIX LAG: Cache results instead of calling getClosest 4+ times per frame
+    local cachedPlayer = (SilentAimPlayersEnabled or (PlayerWidgetActive and AimlockPlayerEnabled)) and getClosestPlayer() or nil
+    local cachedNPC = (SilentAimNPCsEnabled or (NpcWidgetActive and AimlockNpcEnabled)) and getClosestNPC() or nil
 
-    if PlayerWidgetActive and AimlockPlayerEnabled then
-        local t = getClosestPlayer()
-        if t and t:FindFirstChild("HumanoidRootPart") then
-            camera.CFrame = CFrame.new(camera.CFrame.Position, t.HumanoidRootPart.Position)
-        end
+    PlayersPosition = (SilentAimPlayersEnabled and cachedPlayer and cachedPlayer:FindFirstChild("HumanoidRootPart")) and cachedPlayer.HumanoidRootPart.Position or nil
+    NPCPosition = (SilentAimNPCsEnabled and cachedNPC and cachedNPC:FindFirstChild("HumanoidRootPart")) and cachedNPC.HumanoidRootPart.Position or nil
+
+    if PlayerWidgetActive and AimlockPlayerEnabled and cachedPlayer then
+        local hrp = cachedPlayer:FindFirstChild("HumanoidRootPart")
+        if hrp then camera.CFrame = CFrame.new(camera.CFrame.Position, hrp.Position) end
     end
-    if NpcWidgetActive and AimlockNpcEnabled then
-        local t = getClosestNPC()
-        if t and t:FindFirstChild("HumanoidRootPart") then
-            camera.CFrame = CFrame.new(camera.CFrame.Position, t.HumanoidRootPart.Position)
-        end
+    if NpcWidgetActive and AimlockNpcEnabled and cachedNPC then
+        local hrp = cachedNPC:FindFirstChild("HumanoidRootPart")
+        if hrp then camera.CFrame = CFrame.new(camera.CFrame.Position, hrp.Position) end
     end
 end)
 
@@ -1124,22 +1129,17 @@ if ok and mt then
 end
 
 -- ============================================================
--- CARGAR UI DESDE GITHUB AL FINAL
+-- CARGAR UI DESDE GITHUB (NO BLOQUEA EL HILO PRINCIPAL)
 -- ============================================================
-local uiUrl = "https://raw.githubusercontent.com/iSacredRivals/UI/refs/heads/main/Ui.txt"
-local success, err = pcall(function()
-    local uiCode = game:HttpGet(uiUrl)
-    local uiFunc = loadstring(uiCode)
-    if uiFunc then
-        uiFunc()
-    else
-        warn("❌ Error al compilar la UI descargada.")
-    end
+spawn(function()
+    local uiUrl = "https://raw.githubusercontent.com/iSacredRivals/UI/refs/heads/main/Ui.txt"
+    local ok, err = pcall(function()
+        local uiCode = game:HttpGet(uiUrl)
+        local uiFunc = loadstring(uiCode)
+        if uiFunc then uiFunc() end
+    end)
+    if not ok then warn("UI load skipped: " .. tostring(err)) end
 end)
-
-if not success then
-    warn("❌ Error al descargar la UI: " .. tostring(err))
-end
 -- ============================================================
 -- INTERFAZ VISUAL
 -- ============================================================
