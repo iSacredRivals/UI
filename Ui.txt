@@ -105,7 +105,7 @@ function LoadConfig()
             if conf.SacredVFX ~= nil then 
                 SacredVFX_Enabled = conf.SacredVFX
                 if SacredVFX_Enabled then
-                    pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end)
+                    spawn(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end) end)
                 end
             end
             print("✅ Config loaded!")
@@ -2311,7 +2311,7 @@ vfxTitle.TextXAlignment = Enum.TextXAlignment.Center
 addToggleElement(vfxCard, "Enable External VFX Mod", SacredVFX_Enabled, 48, function(v)
     SacredVFX_Enabled = v
     if v then
-        pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end)
+        spawn(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end) end)
     else
         pcall(function()
             if getgenv then
