@@ -1151,18 +1151,7 @@ if ok and mt then
     end
 end
 
--- ============================================================
--- CARGAR UI DESDE GITHUB (NO BLOQUEA EL HILO PRINCIPAL)
--- ============================================================
-spawn(function()
-    local uiUrl = "https://raw.githubusercontent.com/iSacredRivals/UI/refs/heads/main/Ui.txt"
-    local ok, err = pcall(function()
-        local uiCode = game:HttpGet(uiUrl)
-        local uiFunc = loadstring(uiCode)
-        if uiFunc then uiFunc() end
-    end)
-    if not ok then warn("UI load skipped: " .. tostring(err)) end
-end)
+
 -- ============================================================
 -- INTERFAZ VISUAL
 -- ============================================================
@@ -1841,42 +1830,43 @@ end
 
 -- Loop para actualizar UI
 spawn(function()
-    -- Carga oficial de la imagen de perfil (robujo el thumbnail)
+    -- Carga de avatar sin bloquear
     pcall(function()
-        local content, isReady = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+        local content, isReady = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
         if content then
             profileImg.Image = content
         end
     end)
 
-    -- FIX BOUNTY: Esperar a que el juego cargue los datos para guardar el Bounty Inicial correctamente
-    while not player:FindFirstChild("leaderstats") and not player:FindFirstChild("Data") do
-        task.wait(0.5)
-    end
-    task.wait(1)
     startBounty = getBountyValue()
 
     while true do
-        wait(1)
-        local currBounty = getBountyValue()
-        local bountyGained = currBounty - startBounty
-        if bountyGained < 0 then bountyGained = 0 end
-        
-        local elapsed = os.time() - scriptStartTime
-        local h = math.floor(elapsed / 3600)
-        local m = math.floor((elapsed % 3600) / 60)
-        local s = math.floor(elapsed % 60)
-        local timeStr = string.format("%02d:%02d:%02d", h, m, s)
+        pcall(function()
+            local currBounty = getBountyValue()
+            if startBounty == 0 and currBounty > 0 then
+                startBounty = currBounty
+            end
 
-        local levelVal = getGameStat("Level") or "N/A"
-        if type(levelVal) == "number" then levelVal = formatNumber(levelVal) end
-        
-        levelLabel.Text = "Level: " .. tostring(levelVal)
-        bountyLabel.Text = "Bounty: " .. formatNumber(currBounty)
-        
-        timeLbl.Text = "Time Used: " .. timeStr
-        execLbl.Text = "Executions: " .. tostring(totalExecutions)
-        bountyLblStats.Text = "Bounty Gained: " .. formatNumber(bountyGained)
+            local bountyGained = currBounty - startBounty
+            if bountyGained < 0 then bountyGained = 0 end
+            
+            local elapsed = os.time() - scriptStartTime
+            local h = math.floor(elapsed / 3600)
+            local m = math.floor((elapsed % 3600) / 60)
+            local s = math.floor(elapsed % 60)
+            local timeStr = string.format("%02d:%02d:%02d", h, m, s)
+
+            local levelVal = getGameStat("Level") or "..."
+            if type(levelVal) == "number" then levelVal = formatNumber(levelVal) end
+            
+            levelLabel.Text = "Level: " .. tostring(levelVal)
+            bountyLabel.Text = "Bounty: " .. (currBounty > 0 and formatNumber(currBounty) or "...")
+            
+            timeLbl.Text = "Time Used: " .. timeStr
+            execLbl.Text = "Executions: " .. tostring(totalExecutions)
+            bountyLblStats.Text = "Bounty Gained: " .. formatNumber(bountyGained)
+        end)
+        task.wait(1)
     end
 end)
 
