@@ -184,7 +184,7 @@ WalkSpeedValue = 16
 
 spawn(function()
     while true do
-        wait(0.05)
+        wait(0.2)
         if WalkSpeedEnabled then
             local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
             if hum and hum.WalkSpeed ~= WalkSpeedValue then hum.WalkSpeed = WalkSpeedValue end
@@ -435,7 +435,11 @@ antiLavaConnection = nil
 
 function startAntiLava()
     if antiLavaConnection then antiLavaConnection:Disconnect() end
-    antiLavaConnection = RunService.Stepped:Connect(function()
+    local antiLavaTimer = 0
+    antiLavaConnection = RunService.Stepped:Connect(function(_, dt)
+        antiLavaTimer = antiLavaTimer + dt
+        if antiLavaTimer < 0.2 then return end
+        antiLavaTimer = 0
         local char = player.Character
         if not (char and antiLavaActive) then return end
         for _, part in pairs(char:GetDescendants()) do
@@ -499,24 +503,31 @@ end
 WalkOnWaterEnabled = false
 
 spawn(function()
-    local waterPart = Instance.new("Part")
-    waterPart.Size = Vector3.new(200, 1, 200)
-    waterPart.Transparency = 1
-    waterPart.Anchored = true
-    waterPart.CanCollide = false
-    waterPart.Name = "SacredWaterPlatform"
-    waterPart.Parent = workspace
+    local waterPart = nil
+    local function getWaterPart()
+        if not waterPart or not waterPart.Parent then
+            waterPart = Instance.new("Part")
+            waterPart.Size = Vector3.new(200, 1, 200)
+            waterPart.Transparency = 1
+            waterPart.Anchored = true
+            waterPart.CanCollide = false
+            waterPart.Name = "SacredWaterPlatform"
+            waterPart.Parent = workspace
+        end
+        return waterPart
+    end
     while true do
-        wait(0.05)
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if WalkOnWaterEnabled and hrp then
-            if hrp.Position.Y >= 9.5 then
-                waterPart.Position = Vector3.new(hrp.Position.X, 9.2, hrp.Position.Z)
-                waterPart.CanCollide = true
+        wait(0.15)
+        if WalkOnWaterEnabled then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            local wp = getWaterPart()
+            if hrp and hrp.Position.Y >= 9.5 then
+                wp.Position = Vector3.new(hrp.Position.X, 9.2, hrp.Position.Z)
+                wp.CanCollide = true
             else
-                waterPart.CanCollide = false
+                wp.CanCollide = false
             end
-        else
+        elseif waterPart and waterPart.Parent then
             waterPart.CanCollide = false
         end
     end
@@ -844,8 +855,20 @@ end
 -- ============================================================
 -- AIMLOCK + SILENT AIM POSITIONS
 -- ============================================================
-RunService.RenderStepped:Connect(function()
-    -- FIX LAG: Cache results instead of calling getClosest 4+ times per frame
+local aimThrottle = 0
+RunService.RenderStepped:Connect(function(dt)
+    -- FIX LAG: Skip entirely if nothing is enabled
+    if not SilentAimPlayersEnabled and not SilentAimNPCsEnabled and not (PlayerWidgetActive and AimlockPlayerEnabled) and not (NpcWidgetActive and AimlockNpcEnabled) then
+        PlayersPosition = nil
+        NPCPosition = nil
+        return
+    end
+
+    -- Throttle target scanning to ~10 times/sec instead of 60
+    aimThrottle = aimThrottle + dt
+    if aimThrottle < 0.1 then return end
+    aimThrottle = 0
+
     local cachedPlayer = (SilentAimPlayersEnabled or (PlayerWidgetActive and AimlockPlayerEnabled)) and getClosestPlayer() or nil
     local cachedNPC = (SilentAimNPCsEnabled or (NpcWidgetActive and AimlockNpcEnabled)) and getClosestNPC() or nil
 
@@ -1320,8 +1343,13 @@ rainContainer.BackgroundTransparency = 1
 rainContainer.ClipsDescendants = true
 Instance.new("UICorner", rainContainer).CornerRadius = UDim.new(0, 10)
 
+local activeRainDrops = 0
+local MAX_RAIN_DROPS = 6
+
 local function createRainDrop()
     if not mainFrame.Visible then return end
+    if activeRainDrops >= MAX_RAIN_DROPS then return end
+    activeRainDrops = activeRainDrops + 1
     local drop = Instance.new("Frame", rainContainer)
     drop.Name = "RainDrop"
     drop.Size = UDim2.new(0, 2, 0, math.random(8, 16))
@@ -1334,12 +1362,13 @@ local function createRainDrop()
     })
     tween:Play()
     tween.Completed:Connect(function()
+        activeRainDrops = activeRainDrops - 1
         drop:Destroy()
     end)
 end
 
 spawn(function()
-    while true do wait(0.15); pcall(createRainDrop) end
+    while true do wait(0.5); pcall(createRainDrop) end
 end)
 
 local function centerAndMaximizeUI()
