@@ -1911,7 +1911,7 @@ div.BackgroundColor3 = COLORS.ToggleOff
 div.BorderSizePixel = 0
 
 local statsTitle = Instance.new("TextLabel", statsCard)
-statsTitle.Text = "📊 Script Usage Stats"
+statsTitle.Text = "Script Usage Stats"
 statsTitle.Font = Enum.Font.GothamBold
 statsTitle.TextSize = 11
 statsTitle.TextColor3 = currentThemeColor
@@ -1921,27 +1921,27 @@ statsTitle.BackgroundTransparency = 1
 statsTitle.TextXAlignment = Enum.TextXAlignment.Left
 table.insert(themeTexts, statsTitle)
 
--- NUEVO DISEÑO DE STATS BONITOS
-local function createStatLabel(parent, yPos, icon, labelText)
+-- NUEVO DISEÑO DE STATS BONITOS Y LIMPIOS (SIN EMOJIS)
+local function createStatLabel(parent, yPos, symbol, labelText)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -20, 0, 24)
     frame.Position = UDim2.new(0, 10, 0, yPos)
     frame.BackgroundTransparency = 1
     
     local iconLabel = Instance.new("TextLabel", frame)
-    iconLabel.Size = UDim2.new(0, 25, 1, 0)
+    iconLabel.Size = UDim2.new(0, 18, 1, 0)
     iconLabel.Position = UDim2.new(0, 0, 0, 0)
     iconLabel.BackgroundTransparency = 1
-    iconLabel.Text = icon
+    iconLabel.Text = symbol
     iconLabel.Font = Enum.Font.GothamBold
-    iconLabel.TextSize = 13
+    iconLabel.TextSize = 12
     iconLabel.TextColor3 = currentThemeColor
     iconLabel.TextXAlignment = Enum.TextXAlignment.Left
     table.insert(themeTexts, iconLabel)
     
     local textLbl = Instance.new("TextLabel", frame)
-    textLbl.Size = UDim2.new(1, -30, 1, 0)
-    textLbl.Position = UDim2.new(0, 25, 0, 0)
+    textLbl.Size = UDim2.new(1, -22, 1, 0)
+    textLbl.Position = UDim2.new(0, 18, 0, 0)
     textLbl.BackgroundTransparency = 1
     textLbl.Text = labelText
     textLbl.Font = Enum.Font.GothamSemibold
@@ -1952,9 +1952,9 @@ local function createStatLabel(parent, yPos, icon, labelText)
     return textLbl
 end
 
-local timeLbl = createStatLabel(statsCard, 205, "⏱️", "Time Used: 00:00:00")
-local execLbl = createStatLabel(statsCard, 232, "⚙️", "Executions: 0")
-local bountyLblStats = createStatLabel(statsCard, 259, "💰", "Bounty Gained: 0")
+local timeLbl = createStatLabel(statsCard, 205, "•", "Time Used: 00:00:00")
+local execLbl = createStatLabel(statsCard, 232, "•", "Executions: 0")
+local bountyLblStats = createStatLabel(statsCard, 259, "•", "Bounty Gained: 0")
 
 -- Helper para formatear números (ej: 2800 -> 2,800)
 local function formatNumber(n)
@@ -2819,12 +2819,25 @@ themeDropdown.Visible = false
 Instance.new("UICorner", themeDropdown).CornerRadius = UDim.new(0, 5)
 Instance.new("UIListLayout", themeDropdown).Padding = UDim.new(0, 1)
 
+local function isColorLight(c3)
+    return (c3.R * 0.299 + c3.G * 0.587 + c3.B * 0.114) > 0.65
+end
+
 local function applyNewTheme(themeName)
     currentThemeColor = THEMES[themeName]
     themeSelector.Text = themeName .. "  ▼"
+    local isLight = isColorLight(currentThemeColor)
+
     for _, s in ipairs(themeStrokes) do if s and s.Parent then s.Color = currentThemeColor end end
     for _, t in ipairs(themeTexts) do if t and t.Parent then t.TextColor3 = currentThemeColor end end
-    for _, f in ipairs(themeFrames) do if f and f.Parent then f.BackgroundColor3 = currentThemeColor end end
+    for _, f in ipairs(themeFrames) do 
+        if f and f.Parent then 
+            f.BackgroundColor3 = currentThemeColor 
+            if f:IsA("TextButton") or f:IsA("TextLabel") then
+                f.TextColor3 = isLight and Color3.fromRGB(15, 10, 20) or Color3.fromRGB(255, 255, 255)
+            end
+        end 
+    end
     for _, drop in ipairs(rainContainer:GetChildren()) do
         if drop.Name == "RainDrop" then drop.BackgroundColor3 = currentThemeColor end
     end
