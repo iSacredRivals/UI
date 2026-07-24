@@ -1200,6 +1200,14 @@ local function applyVFX(child)
     if not VFX_ON then return end
     if not child or not child.Parent then return end
 
+    -- FIX LAG: Early out for non-visual objects to avoid checking 250 strings per part
+    if not (child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("SurfaceAppearance") or 
+            child:IsA("Decal") or child:IsA("Texture") or child:IsA("SpecialMesh") or 
+            child:IsA("ParticleEmitter") or child:IsA("Trail") or child:IsA("Beam") or 
+            child:IsA("Light")) then
+        return
+    end
+
     -- 1. Entorno de la V (Piso/Nubes) - Forzar a NEGRO
     if isVEnvironment(child) then
         if child:IsA("SurfaceAppearance") or child:IsA("Decal") or child:IsA("Texture") then
@@ -1320,9 +1328,16 @@ RunService.Heartbeat:Connect(function(dt)
     if not VFX_ON then return end
 
     lastDimCheck = lastDimCheck + dt
-    if lastDimCheck >= 0.5 then
+    if lastDimCheck >= 1 then
         lastDimCheck = 0
-        local inVNow = workspace:FindFirstChild("VArenaDimension", true) or workspace:FindFirstChild("MainVortex_LowerLayer", true)
+        -- FIX LAG: Removed recursive search (true) on entire workspace. Checked Map specifically.
+        local mapFolder = workspace:FindFirstChild("Map")
+        local inVNow = false
+        if workspace:FindFirstChild("VArenaDimension") or workspace:FindFirstChild("MainVortex_LowerLayer") then
+            inVNow = true
+        elseif mapFolder and (mapFolder:FindFirstChild("VArenaDimension", true) or mapFolder:FindFirstChild("MainVortex_LowerLayer", true)) then
+            inVNow = true
+        end
         
         if inVNow and not IN_V then
             IN_V = true
