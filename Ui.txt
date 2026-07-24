@@ -641,13 +641,15 @@ spawn(function()
 end)
 
 -- ============================================================
--- ESP (Versión de Yeo Implementada)
+-- ESP & TRACERS
 -- ============================================================
 ESPMaster = false
 ESPName = true
 ESPHealth = true
 ESPDist = true
+ESPTracers = false
 ESPObjects = {}
+TracersList = {}
 
 -- Clean, unobtrusive ESP redesign
 function CreateESP(character)
@@ -661,7 +663,7 @@ function CreateESP(character)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "YeoESP"
     billboard.Adornee = character.Head
-    billboard.Size = UDim2.new(0, 120, 0, 40)
+    billboard.Size = UDim2.new(0, 120, 0, 36)
     billboard.StudsOffset = Vector3.new(0, 2.5, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = character.Head
@@ -676,6 +678,7 @@ function CreateESP(character)
     nameLabel.TextSize = 11
     nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     nameLabel.TextStrokeTransparency = 0.5
+    nameLabel.Visible = ESPName
     nameLabel.Parent = billboard
 
     local healthBg = Instance.new("Frame")
@@ -707,11 +710,61 @@ function CreateESP(character)
     distLabel.TextSize = 9
     distLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
     distLabel.TextStrokeTransparency = 0.5
+    distLabel.Visible = ESPDist
     distLabel.Parent = billboard
 
     table.insert(ESPObjects, billboard)
 end
 
+function ClearTracers()
+    for _, line in pairs(TracersList) do
+        pcall(function()
+            if line.Remove then line:Remove() elseif line.Destroy then line:Destroy() end
+        end)
+    end
+    TracersList = {}
+end
+
+function UpdateTracers()
+    if not ESPMaster or not ESPTracers then
+        ClearTracers()
+        return
+    end
+    
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y - 10)
+    local activePlayers = {}
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local hrpPos, onScreen = camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    table.insert(activePlayers, {Player = p, Pos = Vector2.new(hrpPos.X, hrpPos.Y)})
+                end
+            end
+        end
+    end
+
+    if Drawing then
+        for i, data in ipairs(activePlayers) do
+            local line = TracersList[i]
+            if not line then
+                line = Drawing.new("Line")
+                line.Thickness = 1.5
+                line.Transparency = 0.8
+                TracersList[i] = line
+            end
+            line.Color = Color3.fromRGB(255, 255, 255)
+            line.From = screenCenter
+            line.To = data.Pos
+            line.Visible = true
+        end
+        for i = #activePlayers + 1, #TracersList do
+            if TracersList[i] then TracersList[i].Visible = false end
+        end
+    end
+end
 
 function ClearESP()
     for _, obj in pairs(ESPObjects) do
@@ -729,7 +782,10 @@ function UpdateESP()
 end
 
 function UpdateESPData()
-    if not ESPMaster then return end
+    if not ESPMaster then 
+        ClearTracers()
+        return 
+    end
     local myChar = player.Character
     local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
     if not myHrp then return end
@@ -771,6 +827,8 @@ function UpdateESPData()
             end
         end
     end
+
+    UpdateTracers()
 end
 
 local espUpdateTimer = 0
@@ -964,18 +1022,22 @@ RunService.RenderStepped:Connect(function(dt)
         NPCPosition = (SilentAimNPCsEnabled and _G.cachedAimNPC and _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")) and _G.cachedAimNPC.HumanoidRootPart.Position or nil
     end
 
-    -- Smooth Aimlock sin tirones y sin alejar la camara
+    -- Aimlock Suave Fijo (Fija la vista en el objetivo sin alejar la camara)
     if PlayerWidgetActive and AimlockPlayerEnabled and _G.cachedAimPlayer then
-        local hrp = _G.cachedAimPlayer:FindFirstChild("HumanoidRootPart")
-        if hrp then 
-            local targetCF = CFrame.lookAt(camera.CFrame.Position, hrp.Position)
-            camera.CFrame = camera.CFrame:Lerp(targetCF, 0.25)
+        local targetChar = _G.cachedAimPlayer
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+        if targetHRP and targetHum and targetHum.Health > 0 then 
+            local targetPos = targetHRP.Position + Vector3.new(0, 0.5, 0)
+            camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.Position, targetPos), 0.2)
         end
     elseif NpcWidgetActive and AimlockNpcEnabled and _G.cachedAimNPC then
-        local hrp = _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")
-        if hrp then 
-            local targetCF = CFrame.lookAt(camera.CFrame.Position, hrp.Position)
-            camera.CFrame = camera.CFrame:Lerp(targetCF, 0.25)
+        local targetChar = _G.cachedAimNPC
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+        if targetHRP and targetHum and targetHum.Health > 0 then 
+            local targetPos = targetHRP.Position + Vector3.new(0, 0.5, 0)
+            camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.Position, targetPos), 0.2)
         end
     end
 end)
@@ -1674,6 +1736,8 @@ local function createModuleCard(name, height, targetPage)
     return card
 end
 
+ToggleRegistry = {}
+
 local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -12, 0, 20)
@@ -1696,7 +1760,7 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     clickBtn.Text = defaultState and "ON" or "OFF"
     clickBtn.Font = Enum.Font.GothamBold
     clickBtn.TextSize = 7
-    clickBtn.TextColor3 = COLORS.TextWhite
+    clickBtn.TextColor3 = defaultState and Color3.fromRGB(15, 10, 20) or COLORS.TextWhite
     Instance.new("UICorner", clickBtn).CornerRadius = UDim.new(0, 4)
     if defaultState then table.insert(themeFrames, clickBtn) end
 
@@ -1705,7 +1769,7 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
         if state then
             clickBtn.BackgroundColor3 = currentThemeColor
             clickBtn.Text = "ON"
-            clickBtn.TextColor3 = Color3.fromRGB(15, 10, 20) -- Contrast text for white/bright themes
+            clickBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
             if not table.find(themeFrames, clickBtn) then table.insert(themeFrames, clickBtn) end
         else
             clickBtn.BackgroundColor3 = COLORS.ToggleOff
@@ -1717,12 +1781,13 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
     end
 
     local function setExternalState(newState)
-        if state == newState then return end
         state = newState
         refresh()
         callback(state)
         updateWidgetsVisuals()
     end
+
+    table.insert(ToggleRegistry, function(val) setExternalState(val) end)
 
     clickBtn.MouseButton1Click:Connect(function()
         state = not state
@@ -1834,7 +1899,7 @@ bountyLabel.Text = "Bounty: Loading..."
 bountyLabel.Font = Enum.Font.GothamBold
 bountyLabel.TextSize = 13
 bountyLabel.TextColor3 = COLORS.TextWhite
-levelLabel.Size = UDim2.new(1, 0, 0, 18)
+bountyLabel.Size = UDim2.new(1, 0, 0, 18)
 bountyLabel.Position = UDim2.new(0, 0, 0, 155)
 bountyLabel.BackgroundTransparency = 1
 
@@ -2264,11 +2329,12 @@ NpcWidgetBtn.MouseButton1Click:Connect(function()
     updateWidgetsVisuals()
 end)
 
-local espCard = createModuleCard("ESP Players", 115, CamLockPage)
-addToggleElement(espCard, "Master ESP", ESPMaster, 24, function(v) ESPMaster = v; if v then UpdateESP() else ClearESP() end end)
+local espCard = createModuleCard("ESP Players", 140, CamLockPage)
+addToggleElement(espCard, "Master ESP", ESPMaster, 24, function(v) ESPMaster = v; if v then UpdateESP() else ClearESP(); ClearTracers() end end)
 addToggleElement(espCard, "Show Names", ESPName, 48, function(v) ESPName = v end)
 addToggleElement(espCard, "Show Health", ESPHealth, 72, function(v) ESPHealth = v end)
 addToggleElement(espCard, "Show Distance", ESPDist, 96, function(v) ESPDist = v end)
+addToggleElement(espCard, "ESP Tracers", ESPTracers, 118, function(v) ESPTracers = v; if not v then ClearTracers() end end)
 
 -- Soru Engine
 local soruCard = createModuleCard("Soru & Bypass", 175, SoruPage)
@@ -2464,6 +2530,7 @@ end
 local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
 local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
 blacklistScroll.Size = UDim2.new(1, -8, 1, -45)
+blacklistScroll.Position = UDim2.new(0, 4, 0, 40)
 blacklistScroll.BackgroundColor3 = COLORS.PanelBG
 blacklistScroll.BorderSizePixel = 0
 blacklistScroll.ScrollBarThickness = 4
@@ -2490,12 +2557,11 @@ local function refreshBlacklistUI()
             local nameL = Instance.new("TextLabel", row)
             nameL.Text = p.Name
             nameL.Font = Enum.Font.GothamSemibold
-            nameL.TextSize = 9
+            nameL.TextSize = 9.5
             nameL.TextColor3 = isBlacklisted and Color3.fromRGB(255, 80, 80) or COLORS.TextWhite
             nameL.Size = UDim2.new(0.7, 0, 1, 0)
             nameL.BackgroundTransparency = 1
             nameL.TextXAlignment = Enum.TextXAlignment.Left
-            table.insert(themeTexts, nameL)
             
             local toggleBtn = Instance.new("TextButton", row)
             toggleBtn.Size = UDim2.new(0, 40, 0, 16)
@@ -2503,7 +2569,7 @@ local function refreshBlacklistUI()
             toggleBtn.BackgroundColor3 = isBlacklisted and Color3.fromRGB(255, 60, 60) or COLORS.ToggleOff
             toggleBtn.Text = isBlacklisted and "BAN" or "OK"
             toggleBtn.Font = Enum.Font.GothamBold
-            toggleBtn.TextSize = 7
+            toggleBtn.TextSize = 7.5
             toggleBtn.TextColor3 = COLORS.TextWhite
             Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
             
@@ -2574,15 +2640,17 @@ local socialCard = createModuleCard("Socials & Config", 135, MiscPage)
 local copyBtn = Instance.new("TextButton", socialCard)
 copyBtn.Size = UDim2.new(1, -20, 0, 28)
 copyBtn.Position = UDim2.new(0, 10, 0, 26)
-copyBtn.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+copyBtn.BackgroundColor3 = COLORS.Background
 copyBtn.Text = "📋 Copy Discord Link"
 copyBtn.Font = Enum.Font.GothamBold
 copyBtn.TextSize = 10
-copyBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+copyBtn.TextColor3 = currentThemeColor
 Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 8)
 local copyStroke = Instance.new("UIStroke", copyBtn)
-copyStroke.Color = Color3.fromRGB(120, 80, 180)
-copyStroke.Thickness = 1
+copyStroke.Color = currentThemeColor
+copyStroke.Thickness = 1.2
+table.insert(themeStrokes, copyStroke)
+table.insert(themeTexts, copyBtn)
 
 copyBtn.MouseButton1Click:Connect(function() 
     pcall(function() setclipboard("https://discord.gg/XuUb9xmpqK") end)
@@ -2595,44 +2663,40 @@ end)
 local saveBtn = Instance.new("TextButton", socialCard)
 saveBtn.Size = UDim2.new(1, -20, 0, 28)
 saveBtn.Position = UDim2.new(0, 10, 0, 60)
-saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
+saveBtn.BackgroundColor3 = currentThemeColor
 saveBtn.Text = "💾 Save Config"
 saveBtn.Font = Enum.Font.GothamBold
 saveBtn.TextSize = 10
-saveBtn.TextColor3 = COLORS.TextWhite
+saveBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
 Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 8)
-local saveStroke = Instance.new("UIStroke", saveBtn)
-saveStroke.Color = Color3.fromRGB(80, 180, 255)
-saveStroke.Thickness = 1
+table.insert(themeFrames, saveBtn)
 
 saveBtn.MouseButton1Click:Connect(function() 
     pcall(SaveConfig)
     saveBtn.Text = "✅ Config Saved!"
-    saveBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
     task.delay(1.5, function()
         saveBtn.Text = "💾 Save Config"
-        saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
     end)
 end)
 
 local resetBtn = Instance.new("TextButton", socialCard)
 resetBtn.Size = UDim2.new(1, -20, 0, 28)
 resetBtn.Position = UDim2.new(0, 10, 0, 94)
-resetBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 60)
+resetBtn.BackgroundColor3 = COLORS.Background
 resetBtn.Text = "🔄 Reset Config"
 resetBtn.Font = Enum.Font.GothamBold
 resetBtn.TextSize = 10
-resetBtn.TextColor3 = COLORS.TextWhite
+resetBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
 Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 8)
 local resetStroke = Instance.new("UIStroke", resetBtn)
-resetStroke.Color = Color3.fromRGB(255, 100, 120)
-resetStroke.Thickness = 1
+resetStroke.Color = Color3.fromRGB(255, 80, 80)
+resetStroke.Thickness = 1.2
 
 resetBtn.MouseButton1Click:Connect(function() 
     pcall(function() if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end end)
     
-    -- Restablecer todas las variables a sus valores por defecto
-    ESPMaster = false; ESPName = true; ESPHealth = true; ESPDist = true
+    -- Restablecer todas las variables internas
+    ESPMaster = false; ESPName = true; ESPHealth = true; ESPDist = true; ESPTracers = false
     FastAttackEnabled = false; WalkSpeedEnabled = false; WalkSpeedValue = 16
     DashEnabled = false; DashLengthDist = 1; NoclipEnabled = false; WalkOnWaterEnabled = false
     SmartAutoV4Enabled = false; SuperJumpEnabled = false; SuperJumpPower = 500
@@ -2643,11 +2707,16 @@ resetBtn.MouseButton1Click:Connect(function()
     SoruInfinitoEnabled = false; SoruAimbotEnabled = false; PortalSoruEnabled = false; PortalSanguineCEnabled = false
     FakeKorbloxEnabled = false; FakeHeadlessEnabled = false; FPSPingOverlayEnabled = false
 
+    -- Apagar todos los toggles visuales instantaneamente
+    for _, updateFn in ipairs(ToggleRegistry) do
+        pcall(function() updateFn(false) end)
+    end
+
     ClearESP()
+    ClearTracers()
     updateWidgetsVisuals()
 
     resetBtn.Text = "✅ Config Reset (Defaults)!"
-    saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
     task.delay(1.5, function()
         resetBtn.Text = "🔄 Reset Config"
     end)
@@ -2668,7 +2737,7 @@ local LANG = {
     ES = {
         playerStats = "Estadísticas", combatMain = "Combate", glitches = "Glitches",
         camLock = "Cámara Lock", soruEngine = "Motor Soru", appearance = "Apariencia",
-        aimBlacklist = "Lista Negra", sacredVFX = "Sacred VFX", misc = "Misceláneos",
+        aimBlacklist = "Lista Negra", sacredVFX = "Sacred VFX", misc = "Varios",
         espPlayers = "ESP Jugadores", fpsPing = "FPS / Ping", language = "Idioma",
         performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
         blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador",
