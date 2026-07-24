@@ -408,9 +408,24 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ============================================================
--- PORTAL SORU COMBO (X -> Z)
+-- PORTAL COMBOS (XZ & SANGUINE C)
 -- ============================================================
+PortalSanguineCEnabled = false
+PortalSanguineCWidgetVisible = false
+
+local function isHoldingPortalFruit()
+    local char = player.Character
+    if not char then return false end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        local tName = string.lower(tool.Name)
+        if string.find(tName, "portal") or string.find(tName, "door") then return true end
+    end
+    return false
+end
+
 function doPortalCombo()
+    if not isHoldingPortalFruit() then return end
     local function pressKey(kc)
         VirtualInputManager:SendKeyEvent(true, kc, false, game)
         task.wait(0.05)
@@ -419,6 +434,14 @@ function doPortalCombo()
     pressKey(Enum.KeyCode.X)
     task.wait(0.15)
     pressKey(Enum.KeyCode.Z)
+end
+
+function doPortalSanguineCCombo()
+    if not isHoldingPortalFruit() then return end
+    task.wait(0.3)
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+    task.wait(0.05)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
 end
 
 FLASH_NAMES = {"FlashStepRegular","FlashStepDraco","FlashStep","Flashstep","Soru"}
@@ -439,8 +462,17 @@ function monitorCharPortal(char)
     local h = char:WaitForChild("Humanoid", 5) 
     if not h then return end
     h.AnimationPlayed:Connect(function(track)
+        local animName = string.lower(track.Name)
+        local animId = tostring(track.Animation and track.Animation.AnimationId or "")
+        
+        -- Portal Soru (XZ) - triggers on Soru/Flashstep ONLY when holding Portal Fruit
         if PortalSoruEnabled and isFlashstep(track) then
             task.spawn(doPortalCombo)
+        end
+        
+        -- Portal Sanguine C - triggers on Portal F skill (Portal-Portal / World Warp)
+        if PortalSanguineCEnabled and (string.find(animName, "portal") or string.find(animId, "portal")) then
+            task.spawn(doPortalSanguineCCombo)
         end
     end)
 end
@@ -585,6 +617,7 @@ ESPHealth = true
 ESPDist = true
 ESPObjects = {}
 
+-- Clean, unobtrusive ESP redesign
 function CreateESP(character)
     if not character:FindFirstChild("Head") then return end
     local existing = character.Head:FindFirstChild("YeoESP")
@@ -596,63 +629,56 @@ function CreateESP(character)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "YeoESP"
     billboard.Adornee = character.Head
-    billboard.Size = UDim2.new(0, 160, 0, 60)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Size = UDim2.new(0, 120, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
     billboard.AlwaysOnTop = true
     billboard.Parent = character.Head
 
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "NameLabel"
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Size = UDim2.new(1, 0, 0.4, 0)
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
     nameLabel.Position = UDim2.new(0, 0, 0, 0)
     nameLabel.Text = p.Name
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 13
-    nameLabel.TextColor3 = Color3.new(1, 1, 1)
-    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextSize = 11
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextStrokeTransparency = 0.5
     nameLabel.Parent = billboard
 
     local healthBg = Instance.new("Frame")
     healthBg.Name = "HealthBg"
-    healthBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    healthBg.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    healthBg.BackgroundTransparency = 0.3
     healthBg.BorderSizePixel = 0
-    healthBg.Size = UDim2.new(1, 0, 0.2, 0)
-    healthBg.Position = UDim2.new(0, 0, 0.4, 0)
+    healthBg.Size = UDim2.new(0.8, 0, 0, 4)
+    healthBg.Position = UDim2.new(0.1, 0, 0.45, 0)
+    Instance.new("UICorner", healthBg).CornerRadius = UDim.new(1, 0)
     healthBg.Parent = billboard
 
     local healthFill = Instance.new("Frame")
     healthFill.Name = "HealthFill"
-    healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
     healthFill.BorderSizePixel = 0
     healthFill.Size = UDim2.new(1, 0, 1, 0)
+    Instance.new("UICorner", healthFill).CornerRadius = UDim.new(1, 0)
     healthFill.Parent = healthBg
-
-    local healthText = Instance.new("TextLabel")
-    healthText.Name = "HealthText"
-    healthText.BackgroundTransparency = 1
-    healthText.Size = UDim2.new(1, 0, 1, 0)
-    healthText.Text = ""
-    healthText.Font = Enum.Font.Gotham
-    healthText.TextSize = 10
-    healthText.TextColor3 = Color3.new(1, 1, 1)
-    healthText.TextStrokeTransparency = 0
-    healthText.Parent = healthBg
 
     local distLabel = Instance.new("TextLabel")
     distLabel.Name = "DistLabel"
     distLabel.BackgroundTransparency = 1
-    distLabel.Size = UDim2.new(1, 0, 0.4, 0)
-    distLabel.Position = UDim2.new(0, 0, 0.6, 0)
+    distLabel.Size = UDim2.new(1, 0, 0, 12)
+    distLabel.Position = UDim2.new(0, 0, 0.65, 0)
     distLabel.Text = ""
-    distLabel.Font = Enum.Font.Gotham
-    distLabel.TextSize = 11
-    distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    distLabel.TextStrokeTransparency = 0
+    distLabel.Font = Enum.Font.GothamSemibold
+    distLabel.TextSize = 9
+    distLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+    distLabel.TextStrokeTransparency = 0.5
     distLabel.Parent = billboard
 
     table.insert(ESPObjects, billboard)
 end
+
 
 function ClearESP()
     for _, obj in pairs(ESPObjects) do
@@ -686,17 +712,15 @@ function UpdateESPData()
                     local hBg = billboard:FindFirstChild("HealthBg")
                     if hBg then
                         local hFill = hBg:FindFirstChild("HealthFill")
-                        local hText = hBg:FindFirstChild("HealthText")
-                        if hFill and hText then
+                        if hFill then
                             hFill.Size = UDim2.new(math.clamp(hpPct, 0, 1), 0, 1, 0)
                             if hpPct > 0.6 then
-                                hFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                                hFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
                             elseif hpPct > 0.3 then
-                                hFill.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+                                hFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
                             else
-                                hFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                                hFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
                             end
-                            hText.Text = math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth)
                         end
                         hBg.Visible = ESPHealth
                     end
@@ -813,7 +837,15 @@ function startSanguineAutoWatcher()
 
     SanguineAutoConnection = hum.AnimationPlayed:Connect(function(animTrack)
         if not SanguineAutoEnabled or SanguineAutoCooldown then return end
-        local animId = tostring(animTrack.Animation.AnimationId)
+        
+        -- Verificar que el usuario tenga Sanguine Art en mano
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not tool or not (string.find(string.lower(tool.Name), "sanguine") or string.find(string.lower(tool.Name), "art")) then
+            return
+        end
+
+        local animId = tostring(animTrack.Animation and animTrack.Animation.AnimationId or "")
+        -- Solamente se activa con la habilidad Z de Sanguine
         if animId:find("14586872029") or animId:find("14418367908") or animId:find("14418370048") then
             SanguineAutoCooldown = true
             dropFPS(SanguineAutoDropDuration)
@@ -874,35 +906,42 @@ function getClosestNPC()
 end
 
 -- ============================================================
--- AIMLOCK + SILENT AIM POSITIONS
+-- AIMLOCK SUAVE Y SILENT AIM MEJORADOS
 -- ============================================================
 local aimThrottle = 0
 RunService.RenderStepped:Connect(function(dt)
-    -- FIX LAG: Skip entirely if nothing is enabled
     if not SilentAimPlayersEnabled and not SilentAimNPCsEnabled and not (PlayerWidgetActive and AimlockPlayerEnabled) and not (NpcWidgetActive and AimlockNpcEnabled) then
         PlayersPosition = nil
         NPCPosition = nil
         return
     end
 
-    -- Throttle target scanning to ~10 times/sec instead of 60
     aimThrottle = aimThrottle + dt
-    if aimThrottle < 0.1 then return end
-    aimThrottle = 0
-
-    local cachedPlayer = (SilentAimPlayersEnabled or (PlayerWidgetActive and AimlockPlayerEnabled)) and getClosestPlayer() or nil
-    local cachedNPC = (SilentAimNPCsEnabled or (NpcWidgetActive and AimlockNpcEnabled)) and getClosestNPC() or nil
-
-    PlayersPosition = (SilentAimPlayersEnabled and cachedPlayer and cachedPlayer:FindFirstChild("HumanoidRootPart")) and cachedPlayer.HumanoidRootPart.Position or nil
-    NPCPosition = (SilentAimNPCsEnabled and cachedNPC and cachedNPC:FindFirstChild("HumanoidRootPart")) and cachedNPC.HumanoidRootPart.Position or nil
-
-    if PlayerWidgetActive and AimlockPlayerEnabled and cachedPlayer then
-        local hrp = cachedPlayer:FindFirstChild("HumanoidRootPart")
-        if hrp then camera.CFrame = CFrame.new(camera.CFrame.Position, hrp.Position) end
+    local shouldUpdateTarget = false
+    if aimThrottle >= 0.05 then
+        aimThrottle = 0
+        shouldUpdateTarget = true
     end
-    if NpcWidgetActive and AimlockNpcEnabled and cachedNPC then
-        local hrp = cachedNPC:FindFirstChild("HumanoidRootPart")
-        if hrp then camera.CFrame = CFrame.new(camera.CFrame.Position, hrp.Position) end
+
+    if shouldUpdateTarget then
+        _G.cachedAimPlayer = (SilentAimPlayersEnabled or (PlayerWidgetActive and AimlockPlayerEnabled)) and getClosestPlayer() or nil
+        _G.cachedAimNPC = (SilentAimNPCsEnabled or (NpcWidgetActive and AimlockNpcEnabled)) and getClosestNPC() or nil
+
+        PlayersPosition = (SilentAimPlayersEnabled and _G.cachedAimPlayer and _G.cachedAimPlayer:FindFirstChild("HumanoidRootPart")) and _G.cachedAimPlayer.HumanoidRootPart.Position or nil
+        NPCPosition = (SilentAimNPCsEnabled and _G.cachedAimNPC and _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")) and _G.cachedAimNPC.HumanoidRootPart.Position or nil
+    end
+
+    -- Smooth Aimlock sin tirones (Interpolacion CFrame)
+    if PlayerWidgetActive and AimlockPlayerEnabled and _G.cachedAimPlayer then
+        local hrp = _G.cachedAimPlayer:FindFirstChild("HumanoidRootPart")
+        if hrp then 
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, hrp.Position), 0.25)
+        end
+    elseif NpcWidgetActive and AimlockNpcEnabled and _G.cachedAimNPC then
+        local hrp = _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")
+        if hrp then 
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, hrp.Position), 0.25)
+        end
     end
 end)
 
@@ -1496,6 +1535,7 @@ local CamLockPage = createScrollingPage()
 local SoruPage = createScrollingPage()
 local AppearancePage = createScrollingPage()
 local BlacklistPage = createScrollingPage()
+local SacredVFXPage = createScrollingPage()
 local MiscPage = createScrollingPage()
 StatsPage.Visible = true
 
@@ -1527,14 +1567,15 @@ Instance.new("UICorner", DropLabel).CornerRadius = UDim.new(0, 4)
 table.insert(themeTexts, DropLabel)
 
 local categories = {
-    { name = "Player Stats", page = StatsPage, y = 48 },
-    { name = "Combat Main", page = CombatPage, y = 74 },
-    { name = "Glitches", page = GlitchesPage, y = 100 },
-    { name = "Cam Lock", page = CamLockPage, y = 126 },
-    { name = "Soru Engine", page = SoruPage, y = 152 },
-    { name = "Appearance", page = AppearancePage, y = 178 },
-    { name = "Aim Blacklist", page = BlacklistPage, y = 204 },
-    { name = "Misc", page = MiscPage, y = 230 },
+    { name = "Player Stats", page = StatsPage, y = 45 },
+    { name = "Combat Main", page = CombatPage, y = 73 },
+    { name = "Glitches", page = GlitchesPage, y = 101 },
+    { name = "Cam Lock", page = CamLockPage, y = 129 },
+    { name = "Soru Engine", page = SoruPage, y = 157 },
+    { name = "Appearance", page = AppearancePage, y = 185 },
+    { name = "Aim Blacklist", page = BlacklistPage, y = 213 },
+    { name = "Sacred VFX", page = SacredVFXPage, y = 241 },
+    { name = "Misc", page = MiscPage, y = 269 },
 }
 
 local activeTabBtn = nil
@@ -2192,7 +2233,7 @@ addToggleElement(espCard, "Show Health", ESPHealth, 72, function(v) ESPHealth = 
 addToggleElement(espCard, "Show Distance", ESPDist, 96, function(v) ESPDist = v end)
 
 -- Soru Engine
-local soruCard = createModuleCard("Soru & Bypass", 120, SoruPage)
+local soruCard = createModuleCard("Soru & Bypass", 145, SoruPage)
 addToggleElement(soruCard, "Infinite Soru", SoruInfinitoEnabled, 24, function(v)
     SoruInfinitoEnabled = v
     if player.Character then enforceSoru(player.Character) end
@@ -2208,6 +2249,10 @@ local setPortalSoruState, portalSoruBtn = addToggleElement(soruCard, "Portal Sor
         if SilentAimPlayersEnabled then setSilentPlayers(false) end
     end
     updateWidgetsVisuals()
+end)
+
+addToggleElement(soruCard, "Portal Sanguine C Combo", PortalSanguineCEnabled, 96, function(v)
+    PortalSanguineCEnabled = v
 end)
 
 PortalSoruWidget.MouseButton1Click:Connect(function()
@@ -2411,7 +2456,39 @@ local function refreshBlacklistUI()
 end
 Players.PlayerAdded:Connect(refreshBlacklistUI)
 Players.PlayerRemoving:Connect(refreshBlacklistUI)
-refreshBlacklistUI()
+-- Sacred VFX Page
+local vfxMainCard = createModuleCard("Sacred VFX", 110, SacredVFXPage)
+
+local vfxTitle = Instance.new("TextLabel", vfxMainCard)
+vfxTitle.Text = "✨ SACRED VFX ✨"
+vfxTitle.Font = Enum.Font.GothamBlack
+vfxTitle.TextSize = 16
+vfxTitle.TextColor3 = currentThemeColor
+vfxTitle.Size = UDim2.new(1, -16, 0, 24)
+vfxTitle.Position = UDim2.new(0, 8, 0, 20)
+vfxTitle.BackgroundTransparency = 1
+table.insert(themeTexts, vfxTitle)
+
+local vfxWarning = Instance.new("TextLabel", vfxMainCard)
+vfxWarning.Text = "⚠️ Puede dar lag en celulares de baja gama"
+vfxWarning.Font = Enum.Font.GothamSemibold
+vfxWarning.TextSize = 9
+vfxWarning.TextColor3 = Color3.fromRGB(255, 180, 50)
+vfxWarning.Size = UDim2.new(1, -16, 0, 16)
+vfxWarning.Position = UDim2.new(0, 8, 0, 44)
+vfxWarning.BackgroundTransparency = 1
+
+ExternalVFX_Enabled = false
+addToggleElement(vfxMainCard, "Activar Sacred VFX Mod", ExternalVFX_Enabled, 68, function(v)
+    ExternalVFX_Enabled = v
+    if v then
+        task.spawn(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))()
+            end)
+        end)
+    end
+end)
 
 -- Misc Page
 local miscCard = createModuleCard("Performance", 50, MiscPage)
@@ -2480,7 +2557,24 @@ resetStroke.Thickness = 1
 
 resetBtn.MouseButton1Click:Connect(function() 
     pcall(function() if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end end)
-    resetBtn.Text = "✅ Config Reset!"
+    
+    -- Restablecer todas las variables a sus valores por defecto
+    ESPMaster = false; ESPName = true; ESPHealth = true; ESPDist = true
+    FastAttackEnabled = false; WalkSpeedEnabled = false; WalkSpeedValue = 16
+    DashEnabled = false; DashLengthDist = 1; NoclipEnabled = false; WalkOnWaterEnabled = false
+    SmartAutoV4Enabled = false; SuperJumpEnabled = false; SuperJumpPower = 500
+    SanguineAutoEnabled = false; SoulGuitarJumpEnabled = false
+    SilentAimPlayersEnabled = false; SilentAimNPCsEnabled = false
+    AimlockPlayerEnabled = false; AimlockNpcEnabled = false
+    PlayerWidgetActive = false; NpcWidgetActive = false
+    SoruInfinitoEnabled = false; SoruAimbotEnabled = false; PortalSoruEnabled = false; PortalSanguineCEnabled = false
+    FakeKorbloxEnabled = false; FakeHeadlessEnabled = false; FPSPingOverlayEnabled = false
+
+    ClearESP()
+    updateWidgetsVisuals()
+
+    resetBtn.Text = "✅ Config Reset (Defaults)!"
+    saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
     task.delay(1.5, function()
         resetBtn.Text = "🔄 Reset Config"
     end)
