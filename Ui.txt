@@ -408,10 +408,10 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ============================================================
--- PORTAL COMBOS (XZ & SANGUINE C)
+-- PORTAL COMBOS (XZ & SANGUINE C AUTO-EQUIP)
 -- ============================================================
 PortalSanguineCEnabled = false
-PortalSanguineCWidgetVisible = false
+PortalSanguineCTriggerMode = "PortalF" -- "PortalF" o "Soru"
 
 local function isHoldingPortalFruit()
     local char = player.Character
@@ -422,6 +422,30 @@ local function isHoldingPortalFruit()
         if string.find(tName, "portal") or string.find(tName, "door") then return true end
     end
     return false
+end
+
+local function equipSanguineArt()
+    local char = player.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil end
+    
+    local tool = char:FindFirstChild("Sanguine Art") or char:FindFirstChild("Sanguine")
+    if not tool then
+        local bp = player:FindFirstChild("Backpack")
+        if bp then
+            for _, t in ipairs(bp:GetChildren()) do
+                local name = string.lower(t.Name)
+                if string.find(name, "sanguine") then
+                    hum:EquipTool(t)
+                    tool = t
+                    task.wait(0.1)
+                    break
+                end
+            end
+        end
+    end
+    return tool
 end
 
 function doPortalCombo()
@@ -437,8 +461,11 @@ function doPortalCombo()
 end
 
 function doPortalSanguineCCombo()
-    if not isHoldingPortalFruit() then return end
     task.wait(0.3)
+    -- Equipar automaticamente Sanguine Art
+    equipSanguineArt()
+    task.wait(0.1)
+    -- Presionar C
     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
     task.wait(0.05)
     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
@@ -451,7 +478,7 @@ function isFlashstep(track)
     for _,n in ipairs(FLASH_NAMES) do
         if string.find(string.lower(track.Name), string.lower(n)) then return true end
     end
-    local id = track.Animation.AnimationId:match("%d+") or ""
+    local id = track.Animation and track.Animation.AnimationId:match("%d+") or ""
     for _,fid in ipairs(FLASH_IDS) do
         if id == fid then return true end
     end
@@ -465,14 +492,19 @@ function monitorCharPortal(char)
         local animName = string.lower(track.Name)
         local animId = tostring(track.Animation and track.Animation.AnimationId or "")
         
-        -- Portal Soru (XZ) - triggers on Soru/Flashstep ONLY when holding Portal Fruit
-        if PortalSoruEnabled and isFlashstep(track) then
+        local isPortalF = string.find(animName, "portal") or string.find(animName, "teleport") or string.find(animId, "18461649274") or string.find(animName, "world")
+        local isSoru = isFlashstep(track)
+
+        -- Portal Soru Combo (XZ)
+        if PortalSoruEnabled and isSoru then
             task.spawn(doPortalCombo)
         end
         
-        -- Portal Sanguine C - triggers on Portal F skill (Portal-Portal / World Warp)
-        if PortalSanguineCEnabled and (string.find(animName, "portal") or string.find(animId, "portal")) then
-            task.spawn(doPortalSanguineCCombo)
+        -- Portal Sanguine C Combo (Con disparador configurable: Portal F o Soru)
+        if PortalSanguineCEnabled then
+            if (PortalSanguineCTriggerMode == "PortalF" and isPortalF) or (PortalSanguineCTriggerMode == "Soru" and isSoru) then
+                task.spawn(doPortalSanguineCCombo)
+            end
         end
     end)
 end
@@ -653,6 +685,7 @@ function CreateESP(character)
     healthBg.BorderSizePixel = 0
     healthBg.Size = UDim2.new(0.8, 0, 0, 4)
     healthBg.Position = UDim2.new(0.1, 0, 0.45, 0)
+    healthBg.Visible = ESPHealth
     Instance.new("UICorner", healthBg).CornerRadius = UDim.new(1, 0)
     healthBg.Parent = billboard
 
@@ -931,16 +964,18 @@ RunService.RenderStepped:Connect(function(dt)
         NPCPosition = (SilentAimNPCsEnabled and _G.cachedAimNPC and _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")) and _G.cachedAimNPC.HumanoidRootPart.Position or nil
     end
 
-    -- Smooth Aimlock sin tirones (Interpolacion CFrame)
+    -- Smooth Aimlock sin tirones y sin alejar la camara
     if PlayerWidgetActive and AimlockPlayerEnabled and _G.cachedAimPlayer then
         local hrp = _G.cachedAimPlayer:FindFirstChild("HumanoidRootPart")
         if hrp then 
-            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, hrp.Position), 0.25)
+            local targetCF = CFrame.lookAt(camera.CFrame.Position, hrp.Position)
+            camera.CFrame = camera.CFrame:Lerp(targetCF, 0.25)
         end
     elseif NpcWidgetActive and AimlockNpcEnabled and _G.cachedAimNPC then
         local hrp = _G.cachedAimNPC:FindFirstChild("HumanoidRootPart")
         if hrp then 
-            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, hrp.Position), 0.25)
+            local targetCF = CFrame.lookAt(camera.CFrame.Position, hrp.Position)
+            camera.CFrame = camera.CFrame:Lerp(targetCF, 0.25)
         end
     end
 end)
@@ -1606,7 +1641,8 @@ for _, cat in ipairs(categories) do
         btn.TextColor3 = currentThemeColor
         StatsPage.Visible = false; CombatPage.Visible = false; GlitchesPage.Visible = false
         CamLockPage.Visible = false; SoruPage.Visible = false
-        AppearancePage.Visible = false; BlacklistPage.Visible = false; MiscPage.Visible = false
+        AppearancePage.Visible = false; BlacklistPage.Visible = false
+        SacredVFXPage.Visible = false; MiscPage.Visible = false
         cat.page.Visible = true
         if cat.name == "Soru Engine" then
             RightPanel.Visible = true
@@ -1669,10 +1705,12 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
         if state then
             clickBtn.BackgroundColor3 = currentThemeColor
             clickBtn.Text = "ON"
+            clickBtn.TextColor3 = Color3.fromRGB(15, 10, 20) -- Contrast text for white/bright themes
             if not table.find(themeFrames, clickBtn) then table.insert(themeFrames, clickBtn) end
         else
             clickBtn.BackgroundColor3 = COLORS.ToggleOff
             clickBtn.Text = "OFF"
+            clickBtn.TextColor3 = COLORS.TextWhite
             local idx = table.find(themeFrames, clickBtn)
             if idx then table.remove(themeFrames, idx) end
         end
@@ -1796,7 +1834,7 @@ bountyLabel.Text = "Bounty: Loading..."
 bountyLabel.Font = Enum.Font.GothamBold
 bountyLabel.TextSize = 13
 bountyLabel.TextColor3 = COLORS.TextWhite
-bountyLabel.Size = UDim2.new(1, 0, 0, 18)
+levelLabel.Size = UDim2.new(1, 0, 0, 18)
 bountyLabel.Position = UDim2.new(0, 0, 0, 155)
 bountyLabel.BackgroundTransparency = 1
 
@@ -2233,7 +2271,7 @@ addToggleElement(espCard, "Show Health", ESPHealth, 72, function(v) ESPHealth = 
 addToggleElement(espCard, "Show Distance", ESPDist, 96, function(v) ESPDist = v end)
 
 -- Soru Engine
-local soruCard = createModuleCard("Soru & Bypass", 145, SoruPage)
+local soruCard = createModuleCard("Soru & Bypass", 175, SoruPage)
 addToggleElement(soruCard, "Infinite Soru", SoruInfinitoEnabled, 24, function(v)
     SoruInfinitoEnabled = v
     if player.Character then enforceSoru(player.Character) end
@@ -2253,6 +2291,28 @@ end)
 
 addToggleElement(soruCard, "Portal Sanguine C Combo", PortalSanguineCEnabled, 96, function(v)
     PortalSanguineCEnabled = v
+end)
+
+-- Trigger Selector Button for Portal Sanguine C Combo
+local triggerSelectBtn = Instance.new("TextButton", soruCard)
+triggerSelectBtn.Size = UDim2.new(1, -20, 0, 22)
+triggerSelectBtn.Position = UDim2.new(0, 10, 0, 122)
+triggerSelectBtn.BackgroundColor3 = COLORS.Background
+triggerSelectBtn.Text = "⚡ Trigger: " .. (PortalSanguineCTriggerMode == "PortalF" and "Portal F Skill" or "Soru / Flashstep")
+triggerSelectBtn.Font = Enum.Font.GothamBold
+triggerSelectBtn.TextSize = 8.5
+triggerSelectBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", triggerSelectBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, triggerSelectBtn)
+
+triggerSelectBtn.MouseButton1Click:Connect(function()
+    if PortalSanguineCTriggerMode == "PortalF" then
+        PortalSanguineCTriggerMode = "Soru"
+        triggerSelectBtn.Text = "⚡ Trigger: Soru / Flashstep"
+    else
+        PortalSanguineCTriggerMode = "PortalF"
+        triggerSelectBtn.Text = "⚡ Trigger: Portal F Skill"
+    end
 end)
 
 PortalSoruWidget.MouseButton1Click:Connect(function()
@@ -2478,16 +2538,29 @@ vfxWarning.Size = UDim2.new(1, -16, 0, 16)
 vfxWarning.Position = UDim2.new(0, 8, 0, 44)
 vfxWarning.BackgroundTransparency = 1
 
-ExternalVFX_Enabled = false
-addToggleElement(vfxMainCard, "Activar Sacred VFX Mod", ExternalVFX_Enabled, 68, function(v)
-    ExternalVFX_Enabled = v
-    if v then
-        task.spawn(function()
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))()
-            end)
+local vfxActionBtn = Instance.new("TextButton", vfxMainCard)
+vfxActionBtn.Size = UDim2.new(1, -20, 0, 28)
+vfxActionBtn.Position = UDim2.new(0, 10, 0, 68)
+vfxActionBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+vfxActionBtn.Text = "🚀 Activar Sacred VFX"
+vfxActionBtn.Font = Enum.Font.GothamBold
+vfxActionBtn.TextSize = 11
+vfxActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", vfxActionBtn).CornerRadius = UDim.new(0, 8)
+local vfxActionStroke = Instance.new("UIStroke", vfxActionBtn)
+vfxActionStroke.Color = Color3.fromRGB(220, 100, 255)
+vfxActionStroke.Thickness = 1.5
+
+vfxActionBtn.MouseButton1Click:Connect(function()
+    vfxActionBtn.Text = "⏳ Cargando Mod..."
+    vfxActionBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+    task.spawn(function()
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))()
         end)
-    end
+        vfxActionBtn.Text = "✅ Sacred VFX Activado!"
+        vfxActionBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    end)
 end)
 
 -- Misc Page
@@ -2584,20 +2657,24 @@ local LANG = {
     EN = {
         playerStats = "Player Stats", combatMain = "Combat Main", glitches = "Glitches",
         camLock = "Cam Lock", soruEngine = "Soru Engine", appearance = "Appearance",
-        aimBlacklist = "Aim Blacklist", misc = "Misc",
+        aimBlacklist = "Aim Blacklist", sacredVFX = "Sacred VFX", misc = "Misc",
         espPlayers = "ESP Players", fpsPing = "FPS / Ping Overlay", language = "Language",
         performance = "Performance", fakeBody = "Fake Body", auraVfx = "Aura VFX",
         blacklistTitle = "Silent Aim Blacklist", playerProfile = "Player Profile",
-        saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link"
+        saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link",
+        vfxWarning = "⚠️ May cause lag on low-end mobile devices",
+        activateVfx = "🚀 Activate Sacred VFX"
     },
     ES = {
         playerStats = "Estadísticas", combatMain = "Combate", glitches = "Glitches",
         camLock = "Cámara Lock", soruEngine = "Motor Soru", appearance = "Apariencia",
-        aimBlacklist = "Lista Negra", misc = "Misceláneos",
+        aimBlacklist = "Lista Negra", sacredVFX = "Sacred VFX", misc = "Misceláneos",
         espPlayers = "ESP Jugadores", fpsPing = "FPS / Ping", language = "Idioma",
         performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
         blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador",
-        saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord"
+        saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord",
+        vfxWarning = "⚠️ Puede dar lag en celulares de baja gama",
+        activateVfx = "🚀 Activar Sacred VFX"
     }
 }
 local langCard = createModuleCard("Language / Idioma", 75, MiscPage)
