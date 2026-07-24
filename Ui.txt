@@ -99,7 +99,28 @@ function LoadConfig()
             if conf.Language ~= nil then currentLang = conf.Language end
             if conf.FakeKorblox ~= nil then FakeKorbloxEnabled = conf.FakeKorblox end
             if conf.FakeHeadless ~= nil then FakeHeadlessEnabled = conf.FakeHeadless end
-            print("✅ Config loaded!")
+            if conf.FastAttack ~= nil then FastAttackEnabled = conf.FastAttack end
+            if conf.WSpeedVal ~= nil then WalkSpeedValue = conf.WSpeedVal end
+            if conf.WalkSpeed ~= nil then WalkSpeedEnabled = conf.WalkSpeed end
+            if conf.DashDist ~= nil then DashLengthDist = conf.DashDist end
+            if conf.Dash ~= nil then DashEnabled = conf.Dash end
+            if conf.Noclip ~= nil then NoclipEnabled = conf.Noclip end
+            if conf.WalkOnWater ~= nil then WalkOnWaterEnabled = conf.WalkOnWater end
+            if conf.SmartV4 ~= nil then SmartAutoV4Enabled = conf.SmartV4 end
+            if conf.SuperPower ~= nil then SuperJumpPower = conf.SuperPower end
+            if conf.SuperJump ~= nil then SuperJumpEnabled = conf.SuperJump end
+            if conf.SanguineDrop ~= nil then SanguineAutoDropDuration = conf.SanguineDrop end
+            if conf.SanguineAuto ~= nil then SanguineAutoEnabled = conf.SanguineAuto end
+            if conf.SoulDash ~= nil then SoulGuitarDashLength = conf.SoulDash end
+            if conf.SoulGuitar ~= nil then SoulGuitarJumpEnabled = conf.SoulGuitar end
+            if conf.SilentPlayers ~= nil then SilentAimPlayersEnabled = conf.SilentPlayers end
+            if conf.SilentNPCs ~= nil then SilentAimNPCsEnabled = conf.SilentNPCs end
+            if conf.AimlockPlayers ~= nil then AimlockPlayerEnabled = conf.AimlockPlayers end
+            if conf.AimlockNPCs ~= nil then AimlockNpcEnabled = conf.AimlockNPCs end
+            if conf.InfSoru ~= nil then SoruInfinitoEnabled = conf.InfSoru end
+            if conf.SoruAimbot ~= nil then SoruAimbotEnabled = conf.SoruAimbot end
+            if conf.PortalSoru ~= nil then PortalSoruEnabled = conf.PortalSoru end
+            print("✅ Complete Config loaded successfully!")
         end
     end)
 end
@@ -1506,24 +1527,24 @@ Instance.new("UICorner", DropLabel).CornerRadius = UDim.new(0, 4)
 table.insert(themeTexts, DropLabel)
 
 local categories = {
-    { name = "Player Stats", page = StatsPage, y = 50 },
-    { name = "Combat Main", page = CombatPage, y = 68 },
-    { name = "Glitches", page = GlitchesPage, y = 86 },
-    { name = "Cam Lock", page = CamLockPage, y = 104 },
-    { name = "Soru Engine", page = SoruPage, y = 122 },
-    { name = "Appearance", page = AppearancePage, y = 140 },
-    { name = "Aim Blacklist", page = BlacklistPage, y = 158 },
-    { name = "Misc", page = MiscPage, y = 176 },
+    { name = "Player Stats", page = StatsPage, y = 48 },
+    { name = "Combat Main", page = CombatPage, y = 74 },
+    { name = "Glitches", page = GlitchesPage, y = 100 },
+    { name = "Cam Lock", page = CamLockPage, y = 126 },
+    { name = "Soru Engine", page = SoruPage, y = 152 },
+    { name = "Appearance", page = AppearancePage, y = 178 },
+    { name = "Aim Blacklist", page = BlacklistPage, y = 204 },
+    { name = "Misc", page = MiscPage, y = 230 },
 }
 
 local activeTabBtn = nil
 for _, cat in ipairs(categories) do
     local btn = Instance.new("TextButton", sidebar)
     btn.Text = cat.name
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 9.5
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
     btn.TextColor3 = (cat.page == StatsPage) and currentThemeColor or COLORS.TextGray
-    btn.Size = UDim2.new(1, -15, 0, 20)
+    btn.Size = UDim2.new(1, -15, 0, 24)
     btn.Position = UDim2.new(0, 15, 0, cat.y)
     btn.BackgroundTransparency = 1
     btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -1803,34 +1824,62 @@ local function formatNumber(n)
     return formatted
 end
 
--- Busca el valor en leaderstats o Data (Fix para Blox Fruits)
+-- Busca el valor en leaderstats o Data o Attributes (Fix Blox Fruits)
 local function getGameStat(statName)
     local val = nil
+    -- Chequear leaderstats
     local ls = player:FindFirstChild("leaderstats")
     if ls then
-        local stat = ls:FindFirstChild(statName)
-        if stat then val = stat.Value end
+        for _, child in ipairs(ls:GetChildren()) do
+            if string.lower(child.Name) == string.lower(statName) or string.find(string.lower(child.Name), string.lower(statName)) then
+                val = child.Value
+                break
+            end
+        end
     end
-    if not val then
+    -- Chequear Data folder
+    if val == nil then
         local data = player:FindFirstChild("Data")
         if data then
-            local stat = data:FindFirstChild(statName)
-            if stat then val = stat.Value end
+            for _, child in ipairs(data:GetChildren()) do
+                if string.lower(child.Name) == string.lower(statName) or string.find(string.lower(child.Name), string.lower(statName)) then
+                    val = child.Value
+                    break
+                end
+            end
+        end
+    end
+    -- Chequear Attributes del Player
+    if val == nil then
+        local attr = player:GetAttribute(statName)
+        if attr ~= nil then val = attr end
+    end
+    return val
+end
+
+-- Devuelve el valor real de Bounty / Honor
+local function getBountyValue()
+    local b = tonumber(getGameStat("Bounty")) or 0
+    local h = tonumber(getGameStat("Honor")) or 0
+    local val = math.max(b, h)
+    if val == 0 then
+        -- Fallback directo buscando cualquier objeto con numero mayor a 100 en leaderstats/Data
+        local ls = player:FindFirstChild("leaderstats") or player:FindFirstChild("Data")
+        if ls then
+            for _, child in ipairs(ls:GetChildren()) do
+                if child:IsA("ValueBase") and type(child.Value) == "number" and child.Value >= 500 then
+                    if string.find(string.lower(child.Name), "bounty") or string.find(string.lower(child.Name), "honor") then
+                        return child.Value
+                    end
+                end
+            end
         end
     end
     return val
 end
 
--- FIX DEL BUG DE BOUNTY: Devuelve el valor real sin importar si es Pirata o Marine
-local function getBountyValue()
-    local b = getGameStat("Bounty") or 0
-    local h = getGameStat("Honor") or 0
-    return math.max(b, h)
-end
-
 -- Loop para actualizar UI
 spawn(function()
-    -- Carga de avatar sin bloquear
     pcall(function()
         local content, isReady = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
         if content then
@@ -1838,12 +1887,13 @@ spawn(function()
         end
     end)
 
+    task.wait(1)
     startBounty = getBountyValue()
 
     while true do
         pcall(function()
             local currBounty = getBountyValue()
-            if startBounty == 0 and currBounty > 0 then
+            if (startBounty == 0 or startBounty == nil) and currBounty > 0 then
                 startBounty = currBounty
             end
 
@@ -1856,11 +1906,11 @@ spawn(function()
             local s = math.floor(elapsed % 60)
             local timeStr = string.format("%02d:%02d:%02d", h, m, s)
 
-            local levelVal = getGameStat("Level") or "..."
+            local levelVal = getGameStat("Level") or getGameStat("Nivel") or "..."
             if type(levelVal) == "number" then levelVal = formatNumber(levelVal) end
             
             levelLabel.Text = "Level: " .. tostring(levelVal)
-            bountyLabel.Text = "Bounty: " .. (currBounty > 0 and formatNumber(currBounty) or "...")
+            bountyLabel.Text = "Bounty: " .. (currBounty > 0 and formatNumber(currBounty) or "0")
             
             timeLbl.Text = "Time Used: " .. timeStr
             execLbl.Text = "Executions: " .. tostring(totalExecutions)
@@ -1873,18 +1923,18 @@ end)
 
 -- COMBAT MAIN TAB
 local c1 = createModuleCard("Silent Aim", 75, CombatPage)
-local setSilentPlayers, silentPlayersBtn = addToggleElement(c1, "Silent Players", false, 24, function(v) SilentAimPlayersEnabled = v end)
-local setSilentNpcs, silentNpcsBtn = addToggleElement(c1, "Silent NPCs", false, 48, function(v) SilentAimNPCsEnabled = v end)
+local setSilentPlayers, silentPlayersBtn = addToggleElement(c1, "Silent Players", SilentAimPlayersEnabled, 24, function(v) SilentAimPlayersEnabled = v end)
+local setSilentNpcs, silentNpcsBtn = addToggleElement(c1, "Silent NPCs", SilentAimNPCsEnabled, 48, function(v) SilentAimNPCsEnabled = v end)
 
 local c2 = createModuleCard("Fast Attack", 90, CombatPage)
-addToggleElement(c2, "Fast Attack", false, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
+addToggleElement(c2, "Fast Attack", FastAttackEnabled, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
 addStepper(c2, "Range:", 52, 100, 5000, 50, function() return FastAttackRange end, function(v) FastAttackRange = v end, "")
 
 local c3 = createModuleCard("Movement", 240, CombatPage)
-addToggleElement(c3, "Walk Speed", false, 24, function(v) WalkSpeedEnabled = v end)
+addToggleElement(c3, "Walk Speed", WalkSpeedEnabled, 24, function(v) WalkSpeedEnabled = v end)
 addStepper(c3, "Speed:", 52, 16, 500, 50, function() return WalkSpeedValue end, function(v) WalkSpeedValue = v end, "")
 
-local setDashToggleState = addToggleElement(c3, "Dash Distance", false, 88, function(v) 
+local setDashToggleState = addToggleElement(c3, "Dash Distance", DashEnabled, 88, function(v) 
     DashEnabled = v 
     if v then startDashLoop() else stopDashLoop() end 
 end)
@@ -1893,11 +1943,11 @@ local dashDistLabel = addStepper(c3, "Distance:", 116, 1, 300, 10, function() re
     if DashEnabled then applyDashInstantly() end
 end, "")
 
-addToggleElement(c3, "Noclip", false, 152, function(v) SetNoclip(v) end)
-addToggleElement(c3, "Walk on Water", false, 176, function(v) WalkOnWaterEnabled = v end)
+addToggleElement(c3, "Noclip", NoclipEnabled, 152, function(v) SetNoclip(v) end)
+addToggleElement(c3, "Walk on Water", WalkOnWaterEnabled, 176, function(v) WalkOnWaterEnabled = v end)
 
 local c4 = createModuleCard("Auto V4", 50, CombatPage)
-addToggleElement(c4, "Smart Auto V4", false, 24, function(v) SmartAutoV4Enabled = v end)
+addToggleElement(c4, "Smart Auto V4", SmartAutoV4Enabled, 24, function(v) SmartAutoV4Enabled = v end)
 
 -- Glitches: Sanguine Z Manual
 local glitchCard = createModuleCard("Sanguine Z Manual", 50, GlitchesPage)
@@ -1978,7 +2028,7 @@ end)
 
 -- Glitches: Sanguine Z Auto
 local sanguineAutoCard = createModuleCard("Sanguine Z Auto", 50, GlitchesPage)
-local setSanguineState, sanguineBtn = addToggleElement(sanguineAutoCard, "Sanguine Z Auto", false, 24, function(v)
+local setSanguineState, sanguineBtn = addToggleElement(sanguineAutoCard, "Sanguine Z Auto", SanguineAutoEnabled, 24, function(v)
     SanguineAutoEnabled = v
     SanguineWidgetVisible = v 
     if v then startSanguineAutoWatcher() else 
@@ -2009,21 +2059,21 @@ end)
 
 -- Glitches: No Animations
 local noAnimCard = createModuleCard("No Animations", 50, GlitchesPage)
-addToggleElement(noAnimCard, "No Animations", false, 24, function(v)
+addToggleElement(noAnimCard, "No Animations", NoAnimEnabled, 24, function(v)
     NoAnimEnabled = v
     if v then StartNoAnimLoop() else if NoAnimConnection then NoAnimConnection:Disconnect(); NoAnimConnection = nil end end
 end)
 
 -- Glitches: Super Jump
 local superJumpCard = createModuleCard("Súper Jump", 50, GlitchesPage)
-local setSuperJumpState = addToggleElement(superJumpCard, "Activar SJump", false, 24, function(v)
+local setSuperJumpState = addToggleElement(superJumpCard, "Activar SJump", SuperJumpEnabled, 24, function(v)
     SuperJumpEnabled = v
     updateWidgetsVisuals()
 end)
 
 -- Glitches: Soul Guitar Glitch
 local soulGuitarCard = createModuleCard("Soul Guitar Glitch (Beta)", 75, GlitchesPage) 
-local setSoulGuitarState, soulGuitarBtn = addToggleElement(soulGuitarCard, "Soul Guitar Glitch (Beta)", false, 24, function(v)
+local setSoulGuitarState, soulGuitarBtn = addToggleElement(soulGuitarCard, "Soul Guitar Glitch (Beta)", SoulGuitarJumpEnabled, 24, function(v)
     SoulGuitarJumpEnabled = v
     SoulGuitarWidgetVisible = v
     if v then
@@ -2080,14 +2130,14 @@ end)
 
 -- Glitches: Anti Lava
 local antiLavaCard = createModuleCard("Anti Lava", 50, GlitchesPage)
-addToggleElement(antiLavaCard, "Anti Lava", false, 24, function(v)
+addToggleElement(antiLavaCard, "Anti Lava", antiLavaActive, 24, function(v)
     antiLavaActive = v
     if v then startAntiLava() else stopAntiLava() end
 end)
 
 -- Glitches: Delete Ghost Ship
 local deleteShipCard = createModuleCard("Delete Ghost Ship (Sea 2)", 50, GlitchesPage)
-addToggleElement(deleteShipCard, "Delete Ghost Ship", false, 24, function(v)
+addToggleElement(deleteShipCard, "Delete Ghost Ship", deleteShipActive, 24, function(v)
     deleteShipActive = v
     if v then startDeleteShipLoop() end
 end)
@@ -2113,11 +2163,11 @@ end)
 
 -- Cam Lock
 local aimlockCard = createModuleCard("Camera Aimlock", 75, CamLockPage)
-local setPlayerLockState = addToggleElement(aimlockCard, "Lock Players", false, 24, function(v)
+local setPlayerLockState = addToggleElement(aimlockCard, "Lock Players", PlayerWidgetActive, 24, function(v)
     PlayerWidgetActive = v
     if not v then AimlockPlayerEnabled = false end
 end)
-local setNpcLockState = addToggleElement(aimlockCard, "Lock NPCs", false, 48, function(v)
+local setNpcLockState = addToggleElement(aimlockCard, "Lock NPCs", NpcWidgetActive, 48, function(v)
     NpcWidgetActive = v
     if not v then AimlockNpcEnabled = false end
 end)
@@ -2136,20 +2186,20 @@ NpcWidgetBtn.MouseButton1Click:Connect(function()
 end)
 
 local espCard = createModuleCard("ESP Players", 115, CamLockPage)
-addToggleElement(espCard, "Master ESP", false, 24, function(v) ESPMaster = v; if v then UpdateESP() else ClearESP() end end)
-addToggleElement(espCard, "Show Names", true, 48, function(v) ESPName = v end)
-addToggleElement(espCard, "Show Health", true, 72, function(v) ESPHealth = v end)
-addToggleElement(espCard, "Show Distance", true, 96, function(v) ESPDist = v end)
+addToggleElement(espCard, "Master ESP", ESPMaster, 24, function(v) ESPMaster = v; if v then UpdateESP() else ClearESP() end end)
+addToggleElement(espCard, "Show Names", ESPName, 48, function(v) ESPName = v end)
+addToggleElement(espCard, "Show Health", ESPHealth, 72, function(v) ESPHealth = v end)
+addToggleElement(espCard, "Show Distance", ESPDist, 96, function(v) ESPDist = v end)
 
 -- Soru Engine
 local soruCard = createModuleCard("Soru & Bypass", 120, SoruPage)
-addToggleElement(soruCard, "Infinite Soru", false, 24, function(v)
+addToggleElement(soruCard, "Infinite Soru", SoruInfinitoEnabled, 24, function(v)
     SoruInfinitoEnabled = v
     if player.Character then enforceSoru(player.Character) end
 end)
-addToggleElement(soruCard, "Soru Aimbot (TP)", false, 48, function(v) SoruAimbotEnabled = v end)
+addToggleElement(soruCard, "Soru Aimbot (TP)", SoruAimbotEnabled, 48, function(v) SoruAimbotEnabled = v end)
 
-local setPortalSoruState, portalSoruBtn = addToggleElement(soruCard, "Portal Soru Combo", false, 72, function(v)
+local setPortalSoruState, portalSoruBtn = addToggleElement(soruCard, "Portal Soru Combo", PortalSoruEnabled, 72, function(v)
     PortalSoruEnabled = v
     PortalSoruWidgetVisible = v
     if v then
@@ -2276,11 +2326,11 @@ end)
 
 -- Appearance Page
 local fakeBodyCard = createModuleCard("Fake Body", 75, AppearancePage)
-addToggleElement(fakeBodyCard, "Fake Korblox", false, 24, function(v)
+addToggleElement(fakeBodyCard, "Fake Korblox", FakeKorbloxEnabled, 24, function(v)
     FakeKorbloxEnabled = v
     if v then applyFakeKorblox(player.Character) else removeFakeKorblox(player.Character) end
 end)
-addToggleElement(fakeBodyCard, "Fake Headless", false, 48, function(v)
+addToggleElement(fakeBodyCard, "Fake Headless", FakeHeadlessEnabled, 48, function(v)
     FakeHeadlessEnabled = v
     if v then applyFakeHeadless(player.Character) else removeFakeHeadless(player.Character) end
 end)
@@ -2365,43 +2415,76 @@ refreshBlacklistUI()
 
 -- Misc Page
 local miscCard = createModuleCard("Performance", 50, MiscPage)
-addToggleElement(miscCard, "FPS / Ping Overlay", false, 24, function(v)
+addToggleElement(miscCard, "FPS / Ping Overlay", FPSPingOverlayEnabled, 24, function(v)
     FPSPingOverlayEnabled = v
 end)
 
-local socialCard = createModuleCard("Socials & Config", 120, MiscPage)
+local socialCard = createModuleCard("Socials & Config", 135, MiscPage)
+
 local copyBtn = Instance.new("TextButton", socialCard)
-copyBtn.Size = UDim2.new(1, -20, 0, 24)
-copyBtn.Position = UDim2.new(0, 10, 0, 24)
-copyBtn.BackgroundColor3 = COLORS.ToggleOff
+copyBtn.Size = UDim2.new(1, -20, 0, 28)
+copyBtn.Position = UDim2.new(0, 10, 0, 26)
+copyBtn.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
 copyBtn.Text = "📋 Copy Discord Link"
 copyBtn.Font = Enum.Font.GothamBold
 copyBtn.TextSize = 10
-copyBtn.TextColor3 = COLORS.TextWhite
-Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 4)
-copyBtn.MouseButton1Click:Connect(function() pcall(function() setclipboard("https://discord.gg/XuUb9xmpqK") end) end)
+copyBtn.TextColor3 = Color3.fromRGB(200, 200, 255)
+Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 8)
+local copyStroke = Instance.new("UIStroke", copyBtn)
+copyStroke.Color = Color3.fromRGB(120, 80, 180)
+copyStroke.Thickness = 1
+
+copyBtn.MouseButton1Click:Connect(function() 
+    pcall(function() setclipboard("https://discord.gg/XuUb9xmpqK") end)
+    copyBtn.Text = "✅ Discord Copied!"
+    task.delay(1.5, function()
+        copyBtn.Text = "📋 Copy Discord Link"
+    end)
+end)
 
 local saveBtn = Instance.new("TextButton", socialCard)
-saveBtn.Size = UDim2.new(1, -20, 0, 24)
-saveBtn.Position = UDim2.new(0, 10, 0, 52)
-saveBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+saveBtn.Size = UDim2.new(1, -20, 0, 28)
+saveBtn.Position = UDim2.new(0, 10, 0, 60)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
 saveBtn.Text = "💾 Save Config"
 saveBtn.Font = Enum.Font.GothamBold
 saveBtn.TextSize = 10
 saveBtn.TextColor3 = COLORS.TextWhite
-Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 4)
-saveBtn.MouseButton1Click:Connect(function() pcall(SaveConfig) end)
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 8)
+local saveStroke = Instance.new("UIStroke", saveBtn)
+saveStroke.Color = Color3.fromRGB(80, 180, 255)
+saveStroke.Thickness = 1
+
+saveBtn.MouseButton1Click:Connect(function() 
+    pcall(SaveConfig)
+    saveBtn.Text = "✅ Config Saved!"
+    saveBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    task.delay(1.5, function()
+        saveBtn.Text = "💾 Save Config"
+        saveBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 240)
+    end)
+end)
 
 local resetBtn = Instance.new("TextButton", socialCard)
-resetBtn.Size = UDim2.new(1, -20, 0, 24)
-resetBtn.Position = UDim2.new(0, 10, 0, 80)
-resetBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+resetBtn.Size = UDim2.new(1, -20, 0, 28)
+resetBtn.Position = UDim2.new(0, 10, 0, 94)
+resetBtn.BackgroundColor3 = Color3.fromRGB(220, 40, 60)
 resetBtn.Text = "🔄 Reset Config"
 resetBtn.Font = Enum.Font.GothamBold
 resetBtn.TextSize = 10
 resetBtn.TextColor3 = COLORS.TextWhite
-Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 4)
-resetBtn.MouseButton1Click:Connect(function() pcall(function() delfile("SacredAHK_Config.json") end) end)
+Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 8)
+local resetStroke = Instance.new("UIStroke", resetBtn)
+resetStroke.Color = Color3.fromRGB(255, 100, 120)
+resetStroke.Thickness = 1
+
+resetBtn.MouseButton1Click:Connect(function() 
+    pcall(function() if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end end)
+    resetBtn.Text = "✅ Config Reset!"
+    task.delay(1.5, function()
+        resetBtn.Text = "🔄 Reset Config"
+    end)
+end)
 
 local LANG = {
     EN = {
