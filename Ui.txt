@@ -461,13 +461,11 @@ function doPortalCombo()
 end
 
 function doPortalSanguineCCombo()
-    task.wait(0.3)
-    -- Equipar automaticamente Sanguine Art
+    task.wait(0.25)
     equipSanguineArt()
     task.wait(0.1)
-    -- Presionar C
     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
-    task.wait(0.05)
+    task.wait(0.15)
     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
 end
 
@@ -492,7 +490,7 @@ function monitorCharPortal(char)
         local animName = string.lower(track.Name)
         local animId = tostring(track.Animation and track.Animation.AnimationId or "")
         
-        local isPortalF = string.find(animName, "portal") or string.find(animName, "teleport") or string.find(animId, "18461649274") or string.find(animName, "world")
+        local isPortalF = string.find(animName, "portal") or string.find(animName, "teleport") or string.find(animName, "warp") or string.find(animName, "door") or string.find(animName, "world")
         local isSoru = isFlashstep(track)
 
         -- Portal Soru Combo (XZ)
@@ -500,7 +498,7 @@ function monitorCharPortal(char)
             task.spawn(doPortalCombo)
         end
         
-        -- Portal Sanguine C Combo (Con disparador configurable: Portal F o Soru)
+        -- Portal Sanguine C Combo via Animation
         if PortalSanguineCEnabled then
             if (PortalSanguineCTriggerMode == "PortalF" and isPortalF) or (PortalSanguineCTriggerMode == "Soru" and isSoru) then
                 task.spawn(doPortalSanguineCCombo)
@@ -508,6 +506,18 @@ function monitorCharPortal(char)
         end
     end)
 end
+
+-- Listener directo de teclado/pantalla para la tecla F (Portal F skill)
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        if PortalSanguineCEnabled and PortalSanguineCTriggerMode == "PortalF" then
+            if isHoldingPortalFruit() then
+                task.spawn(doPortalSanguineCCombo)
+            end
+        end
+    end
+end)
 
 player.CharacterAdded:Connect(monitorCharPortal)
 if player.Character then monitorCharPortal(player.Character) end
@@ -957,9 +967,21 @@ end)
 -- ============================================================
 -- TARGET HELPERS
 -- ============================================================
+AimlockTargetPlayer = "Nearest"
+
 function getClosestPlayer()
     local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not myHrp then return nil end
+
+    -- Si hay un objetivo fijo seleccionado en el Selector de Aimlock
+    if AimlockTargetPlayer ~= "Nearest" and AimlockTargetPlayer ~= nil then
+        local targetP = Players:FindFirstChild(AimlockTargetPlayer)
+        if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = targetP.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then return targetP.Character end
+        end
+    end
+
     local closest, closestDist = nil, math.huge
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player and not BlacklistedPlayers[p.Name] and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -1079,10 +1101,42 @@ function applyFakeHeadless(char)
                 if child:IsA("Decal") or child:IsA("Texture") then child.Transparency = 1 end
             end
         end
+        -- Ocultar TODOS los accesorios conectados a la cabeza (Sombreros, cabellos, gafas, mascaras, etc)
         for _, acc in pairs(char:GetChildren()) do
-            if acc:IsA("Accessory") and (acc.AccessoryType == Enum.AccessoryType.Hair or acc.AccessoryType == Enum.AccessoryType.Hat or acc.AccessoryType == Enum.AccessoryType.Face) then
+            if acc:IsA("Accessory") then
                 local handle = acc:FindFirstChild("Handle")
-                if handle and handle:IsA("BasePart") then handle.Transparency = 1 end
+                if handle and handle:IsA("BasePart") then
+                    local isHeadAcc = false
+                    -- Buscar si tiene un attachment de cabeza o esta unido a la cabeza
+                    for _, child in pairs(handle:GetChildren()) do
+                        if child:IsA("Attachment") then
+                            local aName = string.lower(child.Name)
+                            if string.find(aName, "hat") or string.find(aName, "hair") or string.find(aName, "face") or string.find(aName, "head") then
+                                isHeadAcc = true
+                                break
+                            end
+                        end
+                    end
+                    if not isHeadAcc then
+                        for _, weld in pairs(handle:GetChildren()) do
+                            if weld:IsA("Weld") or weld:IsA("Motor6D") or weld:IsA("WeldConstraint") then
+                                if weld.Part0 == head or weld.Part1 == head then
+                                    isHeadAcc = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    -- Si es accesorio de cabeza o tipo sombrero/pelo/cara/desconocido
+                    if isHeadAcc or acc.AccessoryType == Enum.AccessoryType.Hat or acc.AccessoryType == Enum.AccessoryType.Hair or acc.AccessoryType == Enum.AccessoryType.Face or acc.AccessoryType == Enum.AccessoryType.Unknown then
+                        handle.Transparency = 1
+                        for _, sub in pairs(handle:GetDescendants()) do
+                            if sub:IsA("BasePart") or sub:IsA("MeshPart") or sub:IsA("Decal") or sub:IsA("Texture") then
+                                sub.Transparency = 1
+                            end
+                        end
+                    end
+                end
             end
         end
     end)
@@ -1099,9 +1153,16 @@ function removeFakeHeadless(char)
             end
         end
         for _, acc in pairs(char:GetChildren()) do
-            if acc:IsA("Accessory") and (acc.AccessoryType == Enum.AccessoryType.Hair or acc.AccessoryType == Enum.AccessoryType.Hat or acc.AccessoryType == Enum.AccessoryType.Face) then
+            if acc:IsA("Accessory") then
                 local handle = acc:FindFirstChild("Handle")
-                if handle and handle:IsA("BasePart") then handle.Transparency = 0 end
+                if handle and handle:IsA("BasePart") then
+                    handle.Transparency = 0
+                    for _, sub in pairs(handle:GetDescendants()) do
+                        if sub:IsA("BasePart") or sub:IsA("MeshPart") or sub:IsA("Decal") or sub:IsA("Texture") then
+                            sub.Transparency = 0
+                        end
+                    end
+                end
             end
         end
     end)
@@ -2306,7 +2367,7 @@ addToggleElement(fflagsCard, "Activar FFlags1", false, 24, function(v)
 end)
 
 -- Cam Lock
-local aimlockCard = createModuleCard("Camera Aimlock", 75, CamLockPage)
+local aimlockCard = createModuleCard("Camera Aimlock", 105, CamLockPage)
 local setPlayerLockState = addToggleElement(aimlockCard, "Lock Players", PlayerWidgetActive, 24, function(v)
     PlayerWidgetActive = v
     if not v then AimlockPlayerEnabled = false end
@@ -2314,6 +2375,30 @@ end)
 local setNpcLockState = addToggleElement(aimlockCard, "Lock NPCs", NpcWidgetActive, 48, function(v)
     NpcWidgetActive = v
     if not v then AimlockNpcEnabled = false end
+end)
+
+-- Selector de Objetivo Fijo para Aimlock
+local aimlockTargetBtn = Instance.new("TextButton", aimlockCard)
+aimlockTargetBtn.Size = UDim2.new(1, -20, 0, 22)
+aimlockTargetBtn.Position = UDim2.new(0, 10, 0, 74)
+aimlockTargetBtn.BackgroundColor3 = COLORS.Background
+aimlockTargetBtn.Text = "🎯 Lock Target: " .. (AimlockTargetPlayer or "Nearest")
+aimlockTargetBtn.Font = Enum.Font.GothamBold
+aimlockTargetBtn.TextSize = 8.5
+aimlockTargetBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", aimlockTargetBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, aimlockTargetBtn)
+
+aimlockTargetBtn.MouseButton1Click:Connect(function()
+    local plist = {}
+    table.insert(plist, "Nearest")
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then table.insert(plist, p.Name) end
+    end
+    local currIdx = table.find(plist, AimlockTargetPlayer) or 1
+    local nextIdx = (currIdx % #plist) + 1
+    AimlockTargetPlayer = plist[nextIdx]
+    aimlockTargetBtn.Text = "🎯 Lock Target: " .. AimlockTargetPlayer
 end)
 
 PlayerWidgetBtn.MouseButton1Click:Connect(function()
@@ -2528,9 +2613,21 @@ for i, auraName in ipairs(auraNames) do
     auraSetters[auraName] = setter
 end
 local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
+
+local refreshListBtn = Instance.new("TextButton", BlacklistPage)
+refreshListBtn.Size = UDim2.new(1, -8, 0, 24)
+refreshListBtn.Position = UDim2.new(0, 4, 0, 36)
+refreshListBtn.BackgroundColor3 = COLORS.PanelBG
+refreshListBtn.Text = "⟳ Refresh Player List"
+refreshListBtn.Font = Enum.Font.GothamBold
+refreshListBtn.TextSize = 9.5
+refreshListBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", refreshListBtn).CornerRadius = UDim.new(0, 6)
+table.insert(themeTexts, refreshListBtn)
+
 local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
-blacklistScroll.Size = UDim2.new(1, -8, 1, -45)
-blacklistScroll.Position = UDim2.new(0, 4, 0, 40)
+blacklistScroll.Size = UDim2.new(1, -8, 1, -70)
+blacklistScroll.Position = UDim2.new(0, 4, 0, 64)
 blacklistScroll.BackgroundColor3 = COLORS.PanelBG
 blacklistScroll.BorderSizePixel = 0
 blacklistScroll.ScrollBarThickness = 4
@@ -2542,44 +2639,69 @@ Instance.new("UIPadding", blacklistScroll).PaddingTop = UDim.new(0, 6)
 
 local function refreshBlacklistUI()
     for _, item in ipairs(blacklistScroll:GetChildren()) do
-        if item:IsA("Frame") then item:Destroy() end
+        if item:IsA("Frame") or item:IsA("TextLabel") then item:Destroy() end
     end
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= player then
-            local isBlacklisted = BlacklistedPlayers[p.Name] == true
-            local row = Instance.new("Frame", blacklistScroll)
-            row.Size = UDim2.new(1, -10, 0, 26)
-            row.BackgroundColor3 = COLORS.Background
-            row.BorderSizePixel = 0
-            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
-            Instance.new("UIPadding", row).PaddingLeft = UDim.new(0, 8)
-            
-            local nameL = Instance.new("TextLabel", row)
-            nameL.Text = p.Name
-            nameL.Font = Enum.Font.GothamSemibold
-            nameL.TextSize = 9.5
-            nameL.TextColor3 = isBlacklisted and Color3.fromRGB(255, 80, 80) or COLORS.TextWhite
-            nameL.Size = UDim2.new(0.7, 0, 1, 0)
-            nameL.BackgroundTransparency = 1
-            nameL.TextXAlignment = Enum.TextXAlignment.Left
-            
-            local toggleBtn = Instance.new("TextButton", row)
-            toggleBtn.Size = UDim2.new(0, 40, 0, 16)
-            toggleBtn.Position = UDim2.new(1, -48, 0.5, -8)
-            toggleBtn.BackgroundColor3 = isBlacklisted and Color3.fromRGB(255, 60, 60) or COLORS.ToggleOff
-            toggleBtn.Text = isBlacklisted and "BAN" or "OK"
-            toggleBtn.Font = Enum.Font.GothamBold
-            toggleBtn.TextSize = 7.5
-            toggleBtn.TextColor3 = COLORS.TextWhite
-            Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
-            
-            toggleBtn.MouseButton1Click:Connect(function()
-                BlacklistedPlayers[p.Name] = not (BlacklistedPlayers[p.Name] == true)
-                refreshBlacklistUI()
-            end)
+
+    local loadLbl = Instance.new("TextLabel", blacklistScroll)
+    loadLbl.Text = "Loading players..."
+    loadLbl.Font = Enum.Font.GothamBold
+    loadLbl.TextSize = 9
+    loadLbl.TextColor3 = COLORS.TextGray
+    loadLbl.Size = UDim2.new(1, 0, 0, 20)
+    loadLbl.BackgroundTransparency = 1
+
+    task.delay(0.1, function()
+        loadLbl:Destroy()
+        local count = 0
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player then
+                count = count + 1
+                local isBlacklisted = BlacklistedPlayers[p.Name] == true
+                local row = Instance.new("Frame", blacklistScroll)
+                row.Size = UDim2.new(1, -10, 0, 26)
+                row.BackgroundColor3 = COLORS.Background
+                row.BorderSizePixel = 0
+                Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+                Instance.new("UIPadding", row).PaddingLeft = UDim.new(0, 8)
+                
+                local nameL = Instance.new("TextLabel", row)
+                nameL.Text = p.Name
+                nameL.Font = Enum.Font.GothamSemibold
+                nameL.TextSize = 9.5
+                nameL.TextColor3 = isBlacklisted and Color3.fromRGB(255, 80, 80) or COLORS.TextWhite
+                nameL.Size = UDim2.new(0.7, 0, 1, 0)
+                nameL.BackgroundTransparency = 1
+                nameL.TextXAlignment = Enum.TextXAlignment.Left
+                
+                local toggleBtn = Instance.new("TextButton", row)
+                toggleBtn.Size = UDim2.new(0, 40, 0, 16)
+                toggleBtn.Position = UDim2.new(1, -48, 0.5, -8)
+                toggleBtn.BackgroundColor3 = isBlacklisted and Color3.fromRGB(255, 60, 60) or COLORS.ToggleOff
+                toggleBtn.Text = isBlacklisted and "BAN" or "OK"
+                toggleBtn.Font = Enum.Font.GothamBold
+                toggleBtn.TextSize = 7.5
+                toggleBtn.TextColor3 = COLORS.TextWhite
+                Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
+                
+                toggleBtn.MouseButton1Click:Connect(function()
+                    BlacklistedPlayers[p.Name] = not (BlacklistedPlayers[p.Name] == true)
+                    refreshBlacklistUI()
+                end)
+            end
         end
-    end
+        if count == 0 then
+            local emptyLbl = Instance.new("TextLabel", blacklistScroll)
+            emptyLbl.Text = "No other players in server"
+            emptyLbl.Font = Enum.Font.GothamSemibold
+            emptyLbl.TextSize = 9
+            emptyLbl.TextColor3 = COLORS.TextGray
+            emptyLbl.Size = UDim2.new(1, 0, 0, 20)
+            emptyLbl.BackgroundTransparency = 1
+        end
+    end)
 end
+
+refreshListBtn.MouseButton1Click:Connect(refreshBlacklistUI)
 Players.PlayerAdded:Connect(refreshBlacklistUI)
 Players.PlayerRemoving:Connect(refreshBlacklistUI)
 -- Sacred VFX Page
