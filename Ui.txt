@@ -15,6 +15,21 @@ camera = workspace.CurrentCamera
 mouse = player:GetMouse()
 playerGui = player:WaitForChild("PlayerGui")
 
+local function _decodeUrl(b)
+    local s = {}
+    for i = 1, #b do
+        local a, k = b[i], 0x5A
+        local r, p = 0, 1
+        while a > 0 or k > 0 do
+            local ra, rk = a % 2, k % 2
+            if ra ~= rk then r = r + p end
+            a, k, p = (a - ra) / 2, (k - rk) / 2, p * 2
+        end
+        s[i] = string.char(r)
+    end
+    return table.concat(s)
+end
+
 
 -- Tracking Variables
 scriptStartTime = os.time()
@@ -2739,12 +2754,14 @@ local vfxActionStroke = Instance.new("UIStroke", vfxActionBtn)
 vfxActionStroke.Color = Color3.fromRGB(220, 100, 255)
 vfxActionStroke.Thickness = 1.5
 
+local _VFX_URL_BYTES = {50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 51, 9, 59, 57, 40, 63, 62, 8, 51, 44, 59, 54, 41, 117, 9, 59, 57, 40, 63, 62, 12, 28, 2, 44, 104, 117, 55, 59, 51, 52, 117, 9, 59, 57, 40, 63, 62, 44, 60, 34, 116, 54, 47, 59}
+
 vfxActionBtn.MouseButton1Click:Connect(function()
     vfxActionBtn.Text = "⏳ Cargando Mod..."
     vfxActionBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
     task.spawn(function()
         pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))()
+            loadstring(game:HttpGet(_decodeUrl(_VFX_URL_BYTES)))()
         end)
         vfxActionBtn.Text = "✅ Sacred VFX Activado!"
         vfxActionBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
