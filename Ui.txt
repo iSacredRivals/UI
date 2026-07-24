@@ -1281,11 +1281,19 @@ local function applyVFX(child)
 end
 
 function refreshVFX()
-    VFXanimatedParts = {}
-    for _, d in ipairs(workspace:GetDescendants()) do applyVFX(d) end
-    if player.Character then
-        for _, d in ipairs(player.Character:GetDescendants()) do applyVFX(d) end
-    end
+    spawn(function()
+        VFXanimatedParts = {}
+        local count = 0
+        local descendants = workspace:GetDescendants()
+        for i = 1, #descendants do
+            applyVFX(descendants[i])
+            count = count + 1
+            if count % 500 == 0 then task.wait() end
+        end
+        if player.Character then
+            for _, d in ipairs(player.Character:GetDescendants()) do applyVFX(d) end
+        end
+    end)
 end
 
 workspace.DescendantAdded:Connect(applyVFX)
