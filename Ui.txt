@@ -63,8 +63,6 @@ currentFPS = 0
 currentPing = 0
 currentLang = "EN"
 
--- Sacred VFX Mod Variables
-SacredVFX_Enabled = false
 
 -- Variables Dash
 DashEnabled = false
@@ -83,8 +81,7 @@ function SaveConfig()
         SoulGuitar = SoulGuitarJumpEnabled, SoulDash = SoulGuitarDashLength,
         SilentPlayers = SilentAimPlayersEnabled, SilentNPCs = SilentAimNPCsEnabled, AimlockPlayers = AimlockPlayerEnabled, AimlockNPCs = AimlockNpcEnabled,
         InfSoru = SoruInfinitoEnabled, SoruAimbot = SoruAimbotEnabled, PortalSoru = PortalSoruEnabled,
-        FakeKorblox = FakeKorbloxEnabled, FakeHeadless = FakeHeadlessEnabled, FPSPing = FPSPingOverlayEnabled, Language = currentLang,
-        SacredVFX = SacredVFX_Enabled
+        FakeKorblox = FakeKorbloxEnabled, FakeHeadless = FakeHeadlessEnabled, FPSPing = FPSPingOverlayEnabled, Language = currentLang
     }
     pcall(function() writefile("SacredAHK_Config.json", HttpService:JSONEncode(conf)) end)
 end
@@ -102,12 +99,6 @@ function LoadConfig()
             if conf.Language ~= nil then currentLang = conf.Language end
             if conf.FakeKorblox ~= nil then FakeKorbloxEnabled = conf.FakeKorblox end
             if conf.FakeHeadless ~= nil then FakeHeadlessEnabled = conf.FakeHeadless end
-            if conf.SacredVFX ~= nil then 
-                SacredVFX_Enabled = conf.SacredVFX
-                if SacredVFX_Enabled then
-                    spawn(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end) end)
-                end
-            end
             print("✅ Config loaded!")
         end
     end)
@@ -2296,32 +2287,6 @@ for i, auraName in ipairs(auraNames) do
     end)
     auraSetters[auraName] = setter
 end
-
-local vfxCard = createModuleCard("Sacred VFX Engine", 80, AppearancePage)
-local vfxTitle = Instance.new("TextLabel", vfxCard)
-vfxTitle.Size = UDim2.new(1, -16, 0, 20)
-vfxTitle.Position = UDim2.new(0, 8, 0, 24)
-vfxTitle.BackgroundTransparency = 1
-vfxTitle.Text = "✨ Sacred VFX ✨"
-vfxTitle.Font = Enum.Font.GothamBlack
-vfxTitle.TextSize = 14
-vfxTitle.TextColor3 = COLORS.Primary
-vfxTitle.TextXAlignment = Enum.TextXAlignment.Center
-
-addToggleElement(vfxCard, "Enable External VFX Mod", SacredVFX_Enabled, 48, function(v)
-    SacredVFX_Enabled = v
-    if v then
-        spawn(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/SacredVFXv2/main/Sacredvfx.lua"))() end) end)
-    else
-        pcall(function()
-            if getgenv then
-                getgenv().VFX_ON = false
-                getgenv().TRANSFORM_ON = false
-            end
-        end)
-    end
-end)
--- Blacklist Page
 local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
 local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
 blacklistScroll.Size = UDim2.new(1, -8, 1, -45)
@@ -2427,8 +2392,7 @@ local LANG = {
         espPlayers = "ESP Players", fpsPing = "FPS / Ping Overlay", language = "Language",
         performance = "Performance", fakeBody = "Fake Body", auraVfx = "Aura VFX",
         blacklistTitle = "Silent Aim Blacklist", playerProfile = "Player Profile",
-        saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link",
-        sacredVFXEngine = "Sacred VFX Engine", portalVFX = "Portal VFX", fruitTransform = "Fruit Transform"
+        saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link"
     },
     ES = {
         playerStats = "Estadísticas", combatMain = "Combate", glitches = "Glitches",
@@ -2437,8 +2401,7 @@ local LANG = {
         espPlayers = "ESP Jugadores", fpsPing = "FPS / Ping", language = "Idioma",
         performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
         blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador",
-        saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord",
-        sacredVFXEngine = "Motor Sacred VFX", portalVFX = "VFX Portal", fruitTransform = "Transformación Fruta"
+        saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord"
     }
 }
 local langCard = createModuleCard("Language / Idioma", 75, MiscPage)
