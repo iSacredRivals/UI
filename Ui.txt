@@ -279,52 +279,10 @@ task.spawn(function()
     end
 end)
 
--- Botón Flotante Dragon M1
-local dragonScreenGui = Instance.new("ScreenGui")
-dragonScreenGui.Name = "DragonM1Button"
-dragonScreenGui.ResetOnSpawn = false
-dragonScreenGui.Parent = playerGui
-
-local dragonBtn = Instance.new("TextButton", dragonScreenGui)
-dragonBtn.Size = UDim2.new(0, 100, 0, 32)
-dragonBtn.Position = UDim2.new(0, 10, 0, 10)
-dragonBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-dragonBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-dragonBtn.TextSize = 12
-dragonBtn.Font = Enum.Font.GothamBold
-dragonBtn.Text = "🐉 M1 OFF"
-dragonBtn.Active = true
-dragonBtn.Draggable = true
-Instance.new("UICorner", dragonBtn).CornerRadius = UDim.new(0, 8)
-local dragonStroke = Instance.new("UIStroke", dragonBtn)
-dragonStroke.Color = Color3.fromRGB(255, 50, 50)
-dragonStroke.Thickness = 1.5
-
+-- Botón Flotante Dragon M1 Eliminado (Sincronizado directamente con la UI)
 local function UpdateDragonButton()
-    if _G.G_DragonGunM1 then
-        dragonBtn.Text = "🐉 M1 ON"
-        dragonBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 80)
-        dragonStroke.Color = Color3.fromRGB(0, 255, 120)
-    else
-        dragonBtn.Text = "🐉 M1 OFF"
-        dragonBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        dragonStroke.Color = Color3.fromRGB(255, 50, 50)
-    end
+    -- Sincronización directa con el toggle de la UI sin botón flotante externo
 end
-UpdateDragonButton()
-
-dragonBtn.MouseButton1Click:Connect(function()
-    _G.G_DragonGunM1 = not _G.G_DragonGunM1
-    UpdateDragonButton()
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.G then
-        _G.G_DragonGunM1 = not _G.G_DragonGunM1
-        UpdateDragonButton()
-    end
-end)
 
 -- ============================================================
 -- FAST ATTACK (NORMAL)
@@ -1978,13 +1936,35 @@ sidebar.BackgroundTransparency = 1
 local mainTitle = Instance.new("TextLabel", sidebar)
 mainTitle.Text = "SACRED AHK"
 mainTitle.Font = Enum.Font.GothamBold
-mainTitle.TextSize = 13
+mainTitle.TextSize = 12
 mainTitle.TextColor3 = currentThemeColor
-mainTitle.Size = UDim2.new(1, 0, 0, 20)
-mainTitle.Position = UDim2.new(0, 14, 0, 14)
+mainTitle.Size = UDim2.new(0, 80, 0, 20)
+mainTitle.Position = UDim2.new(0, 10, 0, 12)
 mainTitle.BackgroundTransparency = 1
 mainTitle.TextXAlignment = Enum.TextXAlignment.Left
 table.insert(themeTexts, mainTitle)
+
+-- TikTok Badge al lado del título
+local tiktokBadge = Instance.new("TextButton", sidebar)
+tiktokBadge.Size = UDim2.new(0, 65, 0, 16)
+tiktokBadge.Position = UDim2.new(0, 92, 0, 14)
+tiktokBadge.BackgroundColor3 = COLORS.PanelBG
+tiktokBadge.Text = "🎵 TikTok"
+tiktokBadge.Font = Enum.Font.GothamBold
+tiktokBadge.TextSize = 7.5
+tiktokBadge.TextColor3 = currentThemeColor
+Instance.new("UICorner", tiktokBadge).CornerRadius = UDim.new(0, 4)
+local ttStroke = Instance.new("UIStroke", tiktokBadge)
+ttStroke.Color = currentThemeColor
+ttStroke.Thickness = 1
+table.insert(themeTexts, tiktokBadge)
+table.insert(themeStrokes, ttStroke)
+
+tiktokBadge.MouseButton1Click:Connect(function()
+    pcall(function() setclipboard("https://www.tiktok.com/@rivalsxrodx") end)
+    tiktokBadge.Text = "✅ Copied!"
+    task.delay(1.5, function() tiktokBadge.Text = "🎵 TikTok" end)
+end)
 
 local subTitle = Instance.new("TextLabel", sidebar)
 subTitle.Text = "by iSacredRivals"
@@ -1992,7 +1972,7 @@ subTitle.Font = Enum.Font.Gotham
 subTitle.TextSize = 8
 subTitle.TextColor3 = COLORS.TextGray
 subTitle.Size = UDim2.new(1, 0, 0, 14)
-subTitle.Position = UDim2.new(0, 14, 0, 30)
+subTitle.Position = UDim2.new(0, 10, 0, 30)
 subTitle.BackgroundTransparency = 1
 subTitle.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -3136,7 +3116,7 @@ addToggleElement(miscCard, "FPS / Ping Overlay", FPSPingOverlayEnabled, 24, func
     FPSPingOverlayEnabled = v
 end)
 
-local socialCard = createModuleCard("Socials & Config", 135, MiscPage)
+local socialCard = createModuleCard("Socials & Config", 100, MiscPage)
 
 local copyBtn = Instance.new("TextButton", socialCard)
 copyBtn.Size = UDim2.new(1, -20, 0, 28)
@@ -3161,28 +3141,9 @@ copyBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
-local saveBtn = Instance.new("TextButton", socialCard)
-saveBtn.Size = UDim2.new(1, -20, 0, 28)
-saveBtn.Position = UDim2.new(0, 10, 0, 60)
-saveBtn.BackgroundColor3 = currentThemeColor
-saveBtn.Text = "💾 Save Config"
-saveBtn.Font = Enum.Font.GothamBold
-saveBtn.TextSize = 10
-saveBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
-Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 8)
-table.insert(themeFrames, saveBtn)
-
-saveBtn.MouseButton1Click:Connect(function() 
-    pcall(SaveConfig)
-    saveBtn.Text = "✅ Config Saved!"
-    task.delay(1.5, function()
-        saveBtn.Text = "💾 Save Config"
-    end)
-end)
-
 local resetBtn = Instance.new("TextButton", socialCard)
 resetBtn.Size = UDim2.new(1, -20, 0, 28)
-resetBtn.Position = UDim2.new(0, 10, 0, 94)
+resetBtn.Position = UDim2.new(0, 10, 0, 60)
 resetBtn.BackgroundColor3 = COLORS.Background
 resetBtn.Text = "🔄 Reset Config"
 resetBtn.Font = Enum.Font.GothamBold
