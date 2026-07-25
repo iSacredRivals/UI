@@ -1583,36 +1583,48 @@ local function IsSilentAimEnemy(p)
 end
 
 local function GetSilentAimOrigin()
-    -- FOV siempre en el centro de la pantalla
     local v = workspace.CurrentCamera.ViewportSize
     return Vector2.new(v.X / 2, v.Y / 2)
 end
 
+-- Selección por Distancia 3D Real (prioriza enemigos cercanos aunque estén atrás, evita otra isla)
 local function GetClosestTargetToCenter()
+    local myChar = player.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    local MAX_AIMBOT_DIST = 400 -- Máximo 400 studs para no fijar islas lejanas
+
+    -- Si hay un jugador específico seleccionado en el Aimbot
     if _G.G_SilentAimSelectedPlayer and _G.G_SilentAimSelectedPlayer ~= "" and _G.G_SilentAimSelectedPlayer ~= "Nearest" then
         local targetP = Players:FindFirstChild(_G.G_SilentAimSelectedPlayer)
         if targetP and targetP ~= player and targetP.Character then
             if not _G.G_SilentAimTeamCheck or IsSilentAimEnemy(targetP) then
                 local hum = targetP.Character:FindFirstChildOfClass("Humanoid")
-                if hum and hum.Health > 0 then
-                    return targetP.Character:FindFirstChild(_G.G_SilentAimPart) or targetP.Character:FindFirstChild("HumanoidRootPart")
+                local hrp = targetP.Character:FindFirstChild("HumanoidRootPart")
+                if hum and hum.Health > 0 and hrp then
+                    local dist = (hrp.Position - myHRP.Position).Magnitude
+                    if dist <= MAX_AIMBOT_DIST then
+                        return targetP.Character:FindFirstChild(_G.G_SilentAimPart) or hrp
+                    end
                 end
             end
         end
     end
 
-    local origin = GetSilentAimOrigin()
-    local closest, shortest = nil, FOVCircle.Radius
-    local function check(character)
+    local closest, shortestWorldDist = nil, MAX_AIMBOT_DIST
+
+    local function checkNearest(character)
         if not character then return end
         local hum = character:FindFirstChildOfClass("Humanoid")
         if not hum or hum.Health <= 0 then return end
         local part = character:FindFirstChild(_G.G_SilentAimPart) or character:FindFirstChild("HumanoidRootPart")
         if not part then return end
-        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(part.Position)
-        if onScreen then
-            local dist = (Vector2.new(pos.X, pos.Y) - origin).Magnitude
-            if dist < shortest then closest, shortest = part, dist end
+
+        local worldDist = (part.Position - myHRP.Position).Magnitude
+        if worldDist < shortestWorldDist then
+            shortestWorldDist = worldDist
+            closest = part
         end
     end
 
@@ -1620,14 +1632,14 @@ local function GetClosestTargetToCenter()
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= player then
                 if not _G.G_SilentAimTeamCheck or IsSilentAimEnemy(p) then
-                    check(p.Character)
+                    checkNearest(p.Character)
                 end
             end
         end
     end
     if (_G.G_SilentAimTargetMobs or SilentAimNPCsEnabled) and workspace:FindFirstChild("Enemies") then
         for _, enemy in ipairs(workspace.Enemies:GetChildren()) do
-            check(enemy)
+            checkNearest(enemy)
         end
     end
     return closest
@@ -2182,7 +2194,7 @@ end
 
 local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter, setter, suffix)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, -12, 0, 28)
+    frame.Size = UDim2.new(1, -12, 0, 22)
     frame.Position = UDim2.new(0, 6, 0, yPos)
     frame.BackgroundTransparency = 1
 
@@ -2191,36 +2203,35 @@ local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter,
     label.Font = Enum.Font.Gotham
     label.TextSize = 8.5
     label.TextColor3 = COLORS.TextWhite
-    label.Size = UDim2.new(0.5, 0, 1, 0)
+    label.Size = UDim2.new(0.45, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     local minus = Instance.new("TextButton", frame)
-    minus.Size = UDim2.new(0, 22, 0, 18)
-    minus.Position = UDim2.new(1, -60, 0.5, -9)
+    minus.Size = UDim2.new(0, 18, 0, 18)
+    minus.Position = UDim2.new(1, -76, 0.5, -9)
     minus.Text = "-"
     minus.Font = Enum.Font.GothamBold
-    minus.TextSize = 12
+    minus.TextSize = 11
     minus.BackgroundColor3 = COLORS.ToggleOff
     minus.TextColor3 = COLORS.TextWhite
     Instance.new("UICorner", minus).CornerRadius = UDim.new(0, 4)
 
     local valueLabel = Instance.new("TextLabel", frame)
-    valueLabel.Size = UDim2.new(0, 40, 0, 18)
-    valueLabel.Position = UDim2.new(1, -36, 0.5, -9)
-    valueLabel.BackgroundTransparency = 1
+    valueLabel.Size = UDim2.new(0, 36, 0, 18)
+    valueLabel.Position = UDim2.new(1, -56, 0.5, -9)
     valueLabel.Text = tostring(getter()) .. suffix
-    valueLabel.TextColor3 = currentThemeColor
     valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.TextSize = 9
-    table.insert(themeTexts, valueLabel)
+    valueLabel.TextSize = 8.5
+    valueLabel.TextColor3 = COLORS.TextWhite
+    valueLabel.BackgroundTransparency = 1
 
     local plus = Instance.new("TextButton", frame)
-    plus.Size = UDim2.new(0, 22, 0, 18)
-    plus.Position = UDim2.new(1, -12, 0.5, -9)
+    plus.Size = UDim2.new(0, 18, 0, 18)
+    plus.Position = UDim2.new(1, -18, 0.5, -9)
     plus.Text = "+"
     plus.Font = Enum.Font.GothamBold
-    plus.TextSize = 12
+    plus.TextSize = 11
     plus.BackgroundColor3 = COLORS.ToggleOff
     plus.TextColor3 = COLORS.TextWhite
     Instance.new("UICorner", plus).CornerRadius = UDim.new(0, 4)
@@ -2446,20 +2457,56 @@ end)
 
 
 -- COMBAT MAIN TAB
-local c1 = createModuleCard("Aimbot Modules", 240, CombatPage)
+local c1 = createModuleCard("Aimbot Modules", 270, CombatPage)
 addToggleElement(c1, "Aimbot Skills", _G.G_SilentAimSkill, 24, function(v) _G.G_SilentAimSkill = v end)
-addToggleElement(c1, "Aimbot M1 (Dragon Gun)", _G.G_DragonGunM1, 48, function(v) _G.G_DragonGunM1 = v; UpdateDragonButton() end)
-addToggleElement(c1, "Target Players", _G.G_SilentAimTargetPlayers, 72, function(v) 
-    _G.G_SilentAimTargetPlayers = v
-    if v then _G.G_SilentAimTeamCheck = true end
+addToggleElement(c1, "Aimbot M1 (Dragon Gun) ⚠️ BAN RISK", _G.G_DragonGunM1, 48, function(v) 
+    _G.G_DragonGunM1 = v
+    UpdateDragonButton() 
 end)
-addToggleElement(c1, "Target NPCs", _G.G_SilentAimTargetMobs, 96, function(v) 
+
+local setTeamCheckState
+
+local setTargetPlayersState = addToggleElement(c1, "Target Players", _G.G_SilentAimTargetPlayers, 72, function(v) 
+    _G.G_SilentAimTargetPlayers = v
+    if v and setTeamCheckState then
+        setTeamCheckState(true)
+    end
+end)
+
+-- Selector de Objetivo en Aimbot (Ubicado justo debajo de Target Players)
+local aimbotTargetBtn = Instance.new("TextButton", c1)
+aimbotTargetBtn.Size = UDim2.new(1, -12, 0, 20)
+aimbotTargetBtn.Position = UDim2.new(0, 6, 0, 96)
+aimbotTargetBtn.BackgroundColor3 = COLORS.Background
+aimbotTargetBtn.Text = "🎯 Target: " .. (_G.G_SilentAimSelectedPlayer ~= "" and _G.G_SilentAimSelectedPlayer or "Nearest")
+aimbotTargetBtn.Font = Enum.Font.GothamBold
+aimbotTargetBtn.TextSize = 8
+aimbotTargetBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", aimbotTargetBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, aimbotTargetBtn)
+
+aimbotTargetBtn.MouseButton1Click:Connect(function()
+    local plist = {"Nearest"}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then table.insert(plist, p.Name) end
+    end
+    local currIdx = table.find(plist, _G.G_SilentAimSelectedPlayer) or 1
+    local nextIdx = (currIdx % #plist) + 1
+    _G.G_SilentAimSelectedPlayer = plist[nextIdx] == "Nearest" and "" or plist[nextIdx]
+    aimbotTargetBtn.Text = "🎯 Target: " .. (plist[nextIdx])
+end)
+
+addToggleElement(c1, "Target NPCs", _G.G_SilentAimTargetMobs, 120, function(v) 
     _G.G_SilentAimTargetMobs = v
 end)
-addToggleElement(c1, "Team Check", _G.G_SilentAimTeamCheck, 120, function(v) _G.G_SilentAimTeamCheck = v end)
-addToggleElement(c1, "Show FOV Circle", _G.G_SilentAimShowFOV, 144, function(v) _G.G_SilentAimShowFOV = v; FOVCircle.Visible = v end)
-addToggleElement(c1, "Show Lock Line", _G.G_SilentAimShowLine, 168, function(v) _G.G_SilentAimShowLine = v end)
-addStepper(c1, "FOV Radius:", 192, 20, 800, 20, function() return _G.G_SilentAimFOV end, function(v) _G.G_SilentAimFOV = v; FOVCircle.Radius = v end, "px")
+
+setTeamCheckState = addToggleElement(c1, "Team Check", _G.G_SilentAimTeamCheck, 144, function(v) 
+    _G.G_SilentAimTeamCheck = v 
+end)
+
+addToggleElement(c1, "Show FOV Circle", _G.G_SilentAimShowFOV, 168, function(v) _G.G_SilentAimShowFOV = v; FOVCircle.Visible = v end)
+addToggleElement(c1, "Show Lock Line", _G.G_SilentAimShowLine, 192, function(v) _G.G_SilentAimShowLine = v end)
+addStepper(c1, "FOV Radius:", 216, 20, 800, 20, function() return _G.G_SilentAimFOV end, function(v) _G.G_SilentAimFOV = v; FOVCircle.Radius = v end, "px")
 
 local c2 = createModuleCard("Fast Attack", 90, CombatPage)
 addToggleElement(c2, "Fast Attack", FastAttackEnabled, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
@@ -3333,4 +3380,3 @@ end)
 
 updateWidgetsVisuals()
 print("✅ SACRED AHK v10.0 LOADED - PORTAL WIDGET + ANIM FIX + LAVA/SHIP + PLAYER STATS LISTO")
-
