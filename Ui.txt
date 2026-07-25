@@ -1,1 +1,2474 @@
+-- SACRED AHK VERSION 11.0 | FULL AIMBOT MODULE, DRAGON M1, CONFIG SYNC, FIXED ESP & LEVEL
+
+local REQUIRED_KEY = "rivalsxrodx"
+Players = game:GetService("Players")
+TweenService = game:GetService("TweenService")
+UserInputService = game:GetService("UserInputService")
+RunService = game:GetService("RunService")
+ReplicatedStorage = game:GetService("ReplicatedStorage")
+VirtualInputManager = game:GetService("VirtualInputManager")
+HttpService = game:GetService("HttpService")
+Lighting = game:GetService("Lighting")
+
+player = Players.LocalPlayer
+camera = workspace.CurrentCamera
+mouse = player:GetMouse()
+playerGui = player:WaitForChild("PlayerGui")
+
+local function _decodeUrl(b)
+    local s = {}
+    for i = 1, #b do
+        local a, k = b[i], 0x5A
+        local r, p = 0, 1
+        while a > 0 or k > 0 do
+            local ra, rk = a % 2, k % 2
+            if ra ~= rk then r = r + p end
+            a, k, p = (a - ra) / 2, (k - rk) / 2, p * 2
+        end
+        s[i] = string.char(r)
+    end
+    return table.concat(s)
+end
+
+-- Tracking Variables
+scriptStartTime = os.time()
+totalExecutions = 0
+startBounty = 0
+maxLevelSeen = 0
+
+-- Estado Soru & Aimlock
+SoruInfinitoEnabled = false
+SoruAimbotEnabled = false
+soruMaxDist = 2000
+AimlockPlayerEnabled = false
+AimlockNpcEnabled = false
+PlayerWidgetActive = false
+NpcWidgetActive = false
+SelectedSoruTarget = "Nearest"
+AimlockTargetPlayer = "Nearest"
+maxRange = 1000
+
+-- Aimbot & Dragon M1 Globals
+_G.G_SilentAimM1R             = false
+_G.G_SilentAimSkill           = false
+_G.G_SilentAimShowFOV         = false
+_G.G_SilentAimFOV             = 150
+_G.G_SilentAimPart            = "Head"
+_G.G_SilentAimFOVThickness    = 2
+_G.G_SilentAimTargetPlayers   = false
+_G.G_SilentAimTargetMobs      = false
+_G.G_SilentAimShowLine        = false
+_G.G_SilentAimFOVMode         = "Screen Center"
+_G.G_SilentAimTeamCheck       = false
+_G.G_SilentAimMethod          = "Closest to Mouse"
+_G.G_DragonGunM1              = false
+_G.G_AttackMobs               = true
+_G.G_AttackPlayers            = true
+currentSilentAimTarget        = nil
+
+-- Variables Habilidades
+SuperJumpEnabled = false 
+SuperJumpPower = 500 
+SanguineAutoEnabled = false
+SanguineWidgetVisible = false 
+SanguineAutoConnection = nil
+SanguineAutoDropDuration = 2.0
+SanguineAutoCooldown = false
+SoulGuitarJumpEnabled = false
+SoulGuitarWidgetVisible = false
+SoulGuitarDashLength = 121 
+soulGuitarBusy = false
+
+PortalSoruEnabled = false
+PortalSoruWidgetVisible = false
+PortalSanguineCEnabled = false
+PortalSanguineCTriggerMode = "PortalF"
+
+BlacklistedPlayers = {}
+FakeKorbloxEnabled = false
+FakeHeadlessEnabled = false
+ActiveAura = nil
+AuraObjects = {}
+FPSPingOverlayEnabled = false
+currentFPS = 0
+currentPing = 0
+currentLang = "EN"
+
+-- Variables Dash
+DashEnabled = false
+DashLengthDist = 1
+DashRunning = false
+prevDashLength = 1 
+prevDashEnabled = false
+
+-- FOV Circle & Lock Line Drawing Objects
+local FOVCircle = Drawing and Drawing.new("Circle") or nil
+if FOVCircle then
+    FOVCircle.Visible = false
+    FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+    FOVCircle.Radius = _G.G_SilentAimFOV
+    FOVCircle.Thickness = _G.G_SilentAimFOVThickness
+    FOVCircle.Filled = false
+end
+
+local LockLine = Drawing and Drawing.new("Line") or nil
+if LockLine then
+    LockLine.Thickness = 2
+    LockLine.Color = Color3.fromRGB(255, 0, 0)
+    LockLine.Transparency = 1
+    LockLine.Visible = false
+end
+
+-- ============================================================
+-- SAVE & LOAD CONFIG SYSTEM (FIX DESYNC & GHOST TOGGLES)
+-- ============================================================
+ToggleRegistry = {}
+
+function SaveConfig()
+    local conf = {
+        ESPMaster = ESPMaster, ESPName = ESPName, ESPHealth = ESPHealth, ESPDist = ESPDist, ESPTracers = ESPTracers,
+        FastAttack = FastAttackEnabled, FastAttackRange = FastAttackRange,
+        WalkSpeed = WalkSpeedEnabled, WSpeedVal = WalkSpeedValue,
+        Dash = DashEnabled, DashDist = DashLengthDist, Noclip = NoclipEnabled, WalkOnWater = WalkOnWaterEnabled,
+        SmartV4 = SmartAutoV4Enabled, SuperJump = SuperJumpEnabled, SuperPower = SuperJumpPower,
+        SanguineAuto = SanguineAutoEnabled, SanguineDrop = SanguineAutoDropDuration,
+        SoulGuitar = SoulGuitarJumpEnabled, SoulDash = SoulGuitarDashLength,
+        AimbotM1 = _G.G_SilentAimM1R, AimbotSkill = _G.G_SilentAimSkill,
+        TargetPlayers = _G.G_SilentAimTargetPlayers, TargetMobs = _G.G_SilentAimTargetMobs,
+        TeamCheck = _G.G_SilentAimTeamCheck, ShowLockLine = _G.G_SilentAimShowLine,
+        ShowFOV = _G.G_SilentAimShowFOV, FOVRadius = _G.G_SilentAimFOV, FOVThickness = _G.G_SilentAimFOVThickness,
+        DragonGunM1 = _G.G_DragonGunM1,
+        AimlockPlayers = AimlockPlayerEnabled, AimlockNPCs = AimlockNpcEnabled,
+        InfSoru = SoruInfinitoEnabled, SoruAimbot = SoruAimbotEnabled, PortalSoru = PortalSoruEnabled, PortalSanguineC = PortalSanguineCEnabled,
+        FakeKorblox = FakeKorbloxEnabled, FakeHeadless = FakeHeadlessEnabled, FPSPing = FPSPingOverlayEnabled, Language = currentLang
+    }
+    pcall(function() writefile("SacredAHK_Config.json", HttpService:JSONEncode(conf)) end)
+end
+
+function ApplyLoadedConfig(conf)
+    if not conf then return end
+    pcall(function()
+        if conf.ESPMaster ~= nil then ESPMaster = conf.ESPMaster end
+        if conf.ESPName ~= nil then ESPName = conf.ESPName end
+        if conf.ESPHealth ~= nil then ESPHealth = conf.ESPHealth end
+        if conf.ESPDist ~= nil then ESPDist = conf.ESPDist end
+        if conf.ESPTracers ~= nil then ESPTracers = conf.ESPTracers end
+        if conf.FPSPing ~= nil then FPSPingOverlayEnabled = conf.FPSPing end
+        if conf.Language ~= nil then currentLang = conf.Language end
+        if conf.FakeKorblox ~= nil then FakeKorbloxEnabled = conf.FakeKorblox end
+        if conf.FakeHeadless ~= nil then FakeHeadlessEnabled = conf.FakeHeadless end
+        if conf.FastAttack ~= nil then FastAttackEnabled = conf.FastAttack end
+        if conf.FastAttackRange ~= nil then FastAttackRange = conf.FastAttackRange end
+        if conf.WSpeedVal ~= nil then WalkSpeedValue = conf.WSpeedVal end
+        if conf.WalkSpeed ~= nil then WalkSpeedEnabled = conf.WalkSpeed end
+        if conf.DashDist ~= nil then DashLengthDist = conf.DashDist end
+        if conf.Dash ~= nil then DashEnabled = conf.Dash end
+        if conf.Noclip ~= nil then NoclipEnabled = conf.Noclip end
+        if conf.WalkOnWater ~= nil then WalkOnWaterEnabled = conf.WalkOnWater end
+        if conf.SmartV4 ~= nil then SmartAutoV4Enabled = conf.SmartV4 end
+        if conf.SuperPower ~= nil then SuperJumpPower = conf.SuperPower end
+        if conf.SuperJump ~= nil then SuperJumpEnabled = conf.SuperJump end
+        if conf.SanguineDrop ~= nil then SanguineAutoDropDuration = conf.SanguineDrop end
+        if conf.SanguineAuto ~= nil then SanguineAutoEnabled = conf.SanguineAuto end
+        if conf.SoulDash ~= nil then SoulGuitarDashLength = conf.SoulDash end
+        if conf.SoulGuitar ~= nil then SoulGuitarJumpEnabled = conf.SoulGuitar end
+        if conf.AimbotM1 ~= nil then _G.G_SilentAimM1R = conf.AimbotM1 end
+        if conf.AimbotSkill ~= nil then _G.G_SilentAimSkill = conf.AimbotSkill end
+        if conf.TargetPlayers ~= nil then _G.G_SilentAimTargetPlayers = conf.TargetPlayers end
+        if conf.TargetMobs ~= nil then _G.G_SilentAimTargetMobs = conf.TargetMobs end
+        if conf.TeamCheck ~= nil then _G.G_SilentAimTeamCheck = conf.TeamCheck end
+        if conf.ShowLockLine ~= nil then _G.G_SilentAimShowLine = conf.ShowLockLine end
+        if conf.ShowFOV ~= nil then _G.G_SilentAimShowFOV = conf.ShowFOV end
+        if conf.FOVRadius ~= nil then _G.G_SilentAimFOV = conf.FOVRadius end
+        if conf.FOVThickness ~= nil then _G.G_SilentAimFOVThickness = conf.FOVThickness end
+        if conf.DragonGunM1 ~= nil then _G.G_DragonGunM1 = conf.DragonGunM1 end
+        if conf.AimlockPlayers ~= nil then AimlockPlayerEnabled = conf.AimlockPlayers end
+        if conf.AimlockNPCs ~= nil then AimlockNpcEnabled = conf.AimlockNPCs end
+        if conf.InfSoru ~= nil then SoruInfinitoEnabled = conf.InfSoru end
+        if conf.SoruAimbot ~= nil then SoruAimbotEnabled = conf.SoruAimbot end
+        if conf.PortalSoru ~= nil then PortalSoruEnabled = conf.PortalSoru end
+        if conf.PortalSanguineC ~= nil then PortalSanguineCEnabled = conf.PortalSanguineC end
+    end)
+end
+
+-- Limpiar UIs antiguas
+for _, old in ipairs(playerGui:GetChildren()) do
+    if old.Name:match("SacredUI") then old:Destroy() end
+end
+
+-- ============================================================
+-- FAST ATTACK
+-- ============================================================
+RegisterHit, RegisterAttack = nil, nil
+FastAttackEnabled = false
+FastAttackRange = 2000
+FastAttackRunning = false
+
+spawn(function()
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") and v.Name == "RE/RegisterHit" then RegisterHit = v end
+        if v:IsA("RemoteEvent") and v.Name == "RE/RegisterAttack" then RegisterAttack = v end
+    end
+end)
+
+function AttackMultipleTargets(targets)
+    if not RegisterHit or not RegisterAttack then return end
+    pcall(function()
+        if not targets or #targets == 0 then return end
+        local allTargets = {}
+        for _, char in pairs(targets) do
+            local head = char:FindFirstChild("Head")
+            if head then table.insert(allTargets, {char, head}) end
+        end
+        if #allTargets == 0 then return end
+        RegisterAttack:FireServer(0)
+        RegisterHit:FireServer(allTargets[1][2], allTargets)
+    end)
+end
+
+function StartFastAttack()
+    if FastAttackRunning then return end
+    FastAttackRunning = true
+    spawn(function()
+        while FastAttackEnabled do
+            RunService.Stepped:Wait()
+            local myChar = player.Character
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if myHRP then
+                local targets = {}
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character then
+                        local hum = p.Character:FindFirstChild("Humanoid")
+                        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                        if hum and hrp and hum.Health > 0 and (hrp.Position - myHRP.Position).Magnitude <= FastAttackRange then
+                            table.insert(targets, p.Character)
+                        end
+                    end
+                end
+                local enemies = workspace:FindFirstChild("Enemies")
+                if enemies then
+                    for _, enemy in pairs(enemies:GetChildren()) do
+                        local hum = enemy:FindFirstChild("Humanoid")
+                        local hrp = enemy:FindFirstChild("HumanoidRootPart")
+                        if hum and hrp and hum.Health > 0 and (hrp.Position - myHRP.Position).Magnitude <= FastAttackRange then
+                            table.insert(targets, enemy)
+                        end
+                    end
+                end
+                if #targets > 0 then AttackMultipleTargets(targets) end
+            end
+        end
+        FastAttackRunning = false
+    end)
+end
+
+-- ============================================================
+-- WALK SPEED & DASH & NOCLIP
+-- ============================================================
+WalkSpeedEnabled = false
+WalkSpeedValue = 16
+
+spawn(function()
+    while true do
+        wait(0.2)
+        if WalkSpeedEnabled then
+            local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.WalkSpeed ~= WalkSpeedValue then hum.WalkSpeed = WalkSpeedValue end
+        end
+    end
+end)
+
+function startDashLoop()
+    if DashRunning then return end
+    DashRunning = true
+    spawn(function()
+        while DashEnabled do
+            wait(0.1)
+            pcall(function()
+                local char = player.Character
+                if char then
+                    if char:GetAttribute("DashLength") ~= DashLengthDist then char:SetAttribute("DashLength", DashLengthDist) end
+                    if char:GetAttribute("DashLengthAir") ~= DashLengthDist then char:SetAttribute("DashLengthAir", DashLengthDist) end
+                end
+            end)
+        end
+        DashRunning = false
+    end)
+end
+
+function stopDashLoop()
+    DashEnabled = false
+    pcall(function()
+        local char = player.Character
+        if char then
+            char:SetAttribute("DashLength", 1)
+            char:SetAttribute("DashLengthAir", 1)
+        end
+    end)
+end
+
+function applyDashInstantly()
+    pcall(function()
+        local char = player.Character
+        if char then
+            char:SetAttribute("DashLength", DashLengthDist)
+            char:SetAttribute("DashLengthAir", DashLengthDist)
+        end
+    end)
+end
+
+NoclipEnabled = false
+NoclipConn = nil
+
+function SetNoclip(state)
+    NoclipEnabled = state
+    if state then
+        NoclipConn = RunService.Stepped:Connect(function()
+            local char = player.Character
+            if char and NoclipEnabled then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end)
+    else
+        if NoclipConn then NoclipConn:Disconnect(); NoclipConn = nil end
+        local char = player.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
+        end
+    end
+end
+
+player.CharacterAdded:Connect(function()
+    if NoclipEnabled then wait(0.5); SetNoclip(true) end
+end)
+
+-- ============================================================
+-- PORTAL COMBOS (XZ & SANGUINE C AUTO-EQUIP)
+-- ============================================================
+local function isHoldingPortalFruit()
+    local char = player.Character
+    if not char then return false end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if tool then
+        local tName = string.lower(tool.Name)
+        if string.find(tName, "portal") or string.find(tName, "door") then return true end
+    end
+    return false
+end
+
+local function equipSanguineArt()
+    local char = player.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return nil end
+    
+    local tool = char:FindFirstChild("Sanguine Art") or char:FindFirstChild("Sanguine")
+    if not tool then
+        local bp = player:FindFirstChild("Backpack")
+        if bp then
+            for _, t in ipairs(bp:GetChildren()) do
+                local name = string.lower(t.Name)
+                if string.find(name, "sanguine") then
+                    hum:EquipTool(t)
+                    tool = t
+                    task.wait(0.1)
+                    break
+                end
+            end
+        end
+    end
+    return tool
+end
+
+function doPortalCombo()
+    if not isHoldingPortalFruit() then return end
+    local function pressKey(kc)
+        VirtualInputManager:SendKeyEvent(true, kc, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, kc, false, game)
+    end
+    pressKey(Enum.KeyCode.X)
+    task.wait(0.15)
+    pressKey(Enum.KeyCode.Z)
+end
+
+function doPortalSanguineCCombo()
+    task.wait(0.25)
+    equipSanguineArt()
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.C, false, game)
+    task.wait(0.15)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.C, false, game)
+end
+
+FLASH_NAMES = {"FlashStepRegular","FlashStepDraco","FlashStep","Flashstep","Soru"}
+FLASH_IDS = {"17555632156","18461649274","616006778","616010882","5403485593","5403491911"}
+
+function isFlashstep(track)
+    for _,n in ipairs(FLASH_NAMES) do
+        if string.find(string.lower(track.Name), string.lower(n)) then return true end
+    end
+    local id = track.Animation and track.Animation.AnimationId:match("%d+") or ""
+    for _,fid in ipairs(FLASH_IDS) do
+        if id == fid then return true end
+    end
+    return false
+end
+
+function monitorCharPortal(char)
+    local h = char:WaitForChild("Humanoid", 5) 
+    if not h then return end
+    h.AnimationPlayed:Connect(function(track)
+        local animName = string.lower(track.Name)
+        local isPortalF = string.find(animName, "portal") or string.find(animName, "teleport") or string.find(animName, "warp") or string.find(animName, "door") or string.find(animName, "world")
+        local isSoru = isFlashstep(track)
+
+        if PortalSoruEnabled and isSoru then
+            task.spawn(doPortalCombo)
+        end
+        
+        if PortalSanguineCEnabled then
+            if (PortalSanguineCTriggerMode == "PortalF" and isPortalF) or (PortalSanguineCTriggerMode == "Soru" and isSoru) then
+                task.spawn(doPortalSanguineCCombo)
+            end
+        end
+    end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        if PortalSanguineCEnabled and PortalSanguineCTriggerMode == "PortalF" then
+            if isHoldingPortalFruit() then
+                task.spawn(doPortalSanguineCCombo)
+            end
+        end
+    end
+end)
+
+player.CharacterAdded:Connect(monitorCharPortal)
+if player.Character then monitorCharPortal(player.Character) end
+
+-- ============================================================
+-- DRAGON GUN M1 ENGINE (EXTRACTED & VALIDATED REMOTE LOGIC)
+-- ============================================================
+task.spawn(function()
+    local Modules = ReplicatedStorage:WaitForChild("Modules", 5)
+    if not Modules then return end
+    local DragonNet = Modules:WaitForChild("Net", 5)
+    if not DragonNet then return end
+    local ShootGunEvent = DragonNet:WaitForChild("RE/ShootGunEvent", 5)
+    local Remotes = ReplicatedStorage:WaitForChild("Remotes", 5)
+    local Validator2 = Remotes and Remotes:WaitForChild("Validator2", 5)
+    
+    local getupval = debug.getupvalue or getupvalue
+    local setupval = debug.setupvalue or setupvalue
+    local getupvals = debug.getupvalues or getupvalues
+    local ShootFunction
+    local V_Idx = { v26 = 12, v22 = 13, v25 = 14, v21 = 15, v23 = 16, v24 = 17, v27 = 18 }
+
+    local function InitDragonGun()
+        local controllers = ReplicatedStorage:FindFirstChild("Controllers")
+        if not controllers then return end
+        local success, result = pcall(require, controllers:WaitForChild("CombatController", 3))
+        if success and type(result) == "table" and result.Attack and getupval then 
+            ShootFunction = getupval(result.Attack, 9) 
+        end
+    end
+
+    local function GetNextValidator()
+        if not ShootFunction then InitDragonGun() end
+        if not ShootFunction or not getupvals or not getupval or not setupval then return 0, 0 end
+        local upvals = getupvals(ShootFunction)
+        if not upvals then return 0, 0 end
+        if upvals[V_Idx.v21] ~= 727595 then
+            for i, v in pairs(upvals) do
+                if v == 727595 then
+                    local offset = i - 15
+                    V_Idx.v21 = i; V_Idx.v22 = 13 + offset; V_Idx.v23 = 16 + offset
+                    V_Idx.v24 = 17 + offset; V_Idx.v26 = 12 + offset; V_Idx.v25 = 14 + offset
+                    V_Idx.v27 = 18 + offset
+                    break
+                end
+            end
+        end
+        local v1 = getupval(ShootFunction, V_Idx.v21)
+        local v2 = getupval(ShootFunction, V_Idx.v22)
+        local v3 = getupval(ShootFunction, V_Idx.v23)
+        local v4 = getupval(ShootFunction, V_Idx.v24)
+        local v5 = getupval(ShootFunction, V_Idx.v25)
+        local v6 = getupval(ShootFunction, V_Idx.v26)
+        local v7 = getupval(ShootFunction, V_Idx.v27)
+        if not (v1 and v2 and v3 and v4 and v5 and v6 and v7) then return 0, 0 end
+        local v8 = v6 * v2
+        local v9 = (v5 * v2 + v6 * v1) % v3
+        v9 = (v9 * v3 + v8) % v4
+        v5 = math.floor(v9 / v3)
+        v6 = v9 - v5 * v3
+        v7 = v7 + 1
+        setupval(ShootFunction, V_Idx.v25, v5)
+        setupval(ShootFunction, V_Idx.v26, v6)
+        setupval(ShootFunction, V_Idx.v27, v7)
+        return math.floor(v9 / v4 * 16777215), v7
+    end
+
+    local function GetClosestDragonTarget()
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return nil end
+        local closest, dist = nil, math.huge
+        local myPos = root.Position
+
+        if _G.G_AttackMobs or _G.G_SilentAimTargetMobs then
+            local enemies = workspace:FindFirstChild("Enemies")
+            if enemies then
+                for _, enemy in enemies:GetChildren() do
+                    local hum = enemy:FindFirstChildOfClass("Humanoid")
+                    local r = enemy:FindFirstChild("HumanoidRootPart")
+                    if hum and hum.Health > 0 and r then
+                        local d = (r.Position - myPos).Magnitude
+                        if d < dist then dist = d; closest = r end
+                    end
+                end
+            end
+        end
+
+        if _G.G_AttackPlayers or _G.G_SilentAimTargetPlayers then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= player and p.Character then
+                    local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                    local r = p.Character:FindFirstChild("HumanoidRootPart")
+                    if hum and hum.Health > 0 and r then
+                        local d = (r.Position - myPos).Magnitude
+                        if d < dist then dist = d; closest = r end
+                    end
+                end
+            end
+        end
+        return closest
+    end
+
+    while true do
+        task.wait(0.085)
+        if _G.G_DragonGunM1 then
+            pcall(function()
+                local char = player.Character
+                local tool = char and char:FindFirstChildOfClass("Tool")
+                if not tool or tool.ToolTip ~= "Gun" then return end
+                local target = GetClosestDragonTarget()
+                if not target then return end
+                local code, count = GetNextValidator()
+                if code ~= 0 and Validator2 then Validator2:FireServer(code, count) end
+                tool:SetAttribute("LocalOverheat", 0)
+                tool:SetAttribute("LocalTotalShots", (tool:GetAttribute("LocalTotalShots") or 0) + 1)
+                if ShootGunEvent then ShootGunEvent:FireServer(target.Position, { target }) end
+            end)
+        end
+    end
+end)
+
+-- Dragon M1 visual update (no floating button, controlled from UI toggle only)
+function updateDragonBtnVisual()
+    -- no-op, toggle is inside the UI card
+end
+
+-- ============================================================
+-- AIMBOT CORE LOGIC (M1 & SKILL AIMBOT)
+-- ============================================================
+function IsSilentAimEnemy(p)
+    if not p or p == player then return false end
+    local myTeam, targetTeam = player.Team, p.Team
+    if myTeam and targetTeam and myTeam.Name == "Marines" and targetTeam.Name == "Marines" then
+        return false
+    end
+    return true
+end
+
+function GetClosestTargetToMouse()
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    local closest, shortest = nil, (_G.G_SilentAimShowFOV and _G.G_SilentAimFOV or math.huge)
+
+    if AimlockTargetPlayer and AimlockTargetPlayer ~= "Nearest" then
+        local specificPlayer = Players:FindFirstChild(AimlockTargetPlayer)
+        if specificPlayer and specificPlayer.Character and not BlacklistedPlayers[specificPlayer.Name] then
+            local hum = specificPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local part = specificPlayer.Character:FindFirstChild(_G.G_SilentAimPart) or specificPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if part then return part end
+            end
+        end
+    end
+
+    local function checkChar(char)
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then return end
+        local part = char:FindFirstChild(_G.G_SilentAimPart) or char:FindFirstChild("HumanoidRootPart")
+        if not part then return end
+        local pos, onScreen = camera:WorldToViewportPoint(part.Position)
+        if onScreen then
+            local dist = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+            if dist < shortest then
+                closest = part
+                shortest = dist
+            end
+        end
+    end
+
+    if _G.G_SilentAimTargetPlayers then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character and not BlacklistedPlayers[p.Name] then
+                if not _G.G_SilentAimTeamCheck or IsSilentAimEnemy(p) then
+                    checkChar(p.Character)
+                end
+            end
+        end
+    end
+
+    if _G.G_SilentAimTargetMobs then
+        local enemies = workspace:FindFirstChild("Enemies")
+        if enemies then
+            for _, mob in pairs(enemies:GetChildren()) do
+                checkChar(mob)
+            end
+        end
+    end
+
+    return closest
+end
+
+-- Mouse Module Hook (Skill Aimbot)
+local MouseModuleInstance = ReplicatedStorage:FindFirstChild("Mouse")
+local MouseModule = nil
+if MouseModuleInstance then pcall(function() MouseModule = require(MouseModuleInstance) end) end
+if MouseModule and typeof(MouseModule) == "table" then
+    pcall(function()
+        local realStore = { Hit = rawget(MouseModule, "Hit"), Target = rawget(MouseModule, "Target") }
+        local mmt = getrawmetatable(MouseModule)
+        if mmt then setreadonly(mmt, false) else mmt = {}; setmetatable(MouseModule, mmt) end
+        rawset(MouseModule, "Hit", nil); rawset(MouseModule, "Target", nil)
+        mmt.__index = function(self, key)
+            if key == "Hit" then
+                if _G.G_SilentAimSkill and currentSilentAimTarget then return CFrame.new(currentSilentAimTarget.Position) end
+                return realStore.Hit
+            elseif key == "Target" then
+                if _G.G_SilentAimSkill and currentSilentAimTarget then return currentSilentAimTarget end
+                return realStore.Target
+            end
+        end
+        mmt.__newindex = function(self, key, value)
+            if key == "Hit" or key == "Target" then realStore[key] = value else rawset(self, key, value) end
+        end
+        setreadonly(mmt, true)
+    end)
+end
+
+-- Metamethod Hook (M1 Aimbot)
+local oldIndex
+pcall(function()
+    oldIndex = hookmetamethod(game, "__index", function(self, key)
+        if _G.G_SilentAimM1R and currentSilentAimTarget and not checkcaller() and self == mouse then
+            local tp = currentSilentAimTarget.Position
+            local cp = camera.CFrame.Position
+            if key == "Hit" then return CFrame.new(tp)
+            elseif key == "Target" then return currentSilentAimTarget
+            elseif key == "UnitRay" then return Ray.new(cp, (tp - cp).Unit)
+            elseif key == "Origin" then return cp
+            elseif key == "Direction" then return (tp - cp).Unit
+            end
+        end
+        return oldIndex(self, key)
+    end)
+end)
+
+-- RenderStepped Aimbot & FOV Circle Loop
+RunService.RenderStepped:Connect(function()
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+    if FOVCircle then
+        FOVCircle.Visible = _G.G_SilentAimShowFOV
+        FOVCircle.Position = screenCenter
+        FOVCircle.Radius = _G.G_SilentAimFOV
+        FOVCircle.Thickness = _G.G_SilentAimFOVThickness
+    end
+
+    if _G.G_SilentAimM1R or _G.G_SilentAimSkill then
+        currentSilentAimTarget = GetClosestTargetToMouse()
+    else
+        currentSilentAimTarget = nil
+    end
+
+    if LockLine then
+        if _G.G_SilentAimShowLine and currentSilentAimTarget then
+            local pos, onScreen = camera:WorldToViewportPoint(currentSilentAimTarget.Position)
+            if onScreen then
+                LockLine.Visible = true
+                LockLine.From = screenCenter
+                LockLine.To = Vector2.new(pos.X, pos.Y)
+                LockLine.Color = currentThemeColor
+            else
+                LockLine.Visible = false
+            end
+        else
+            LockLine.Visible = false
+        end
+    end
+end)
+
+-- ============================================================
+-- ESP & TRACERS (FIX FLICKER & IMMEDIATE HEALTH FILL)
+-- ============================================================
+ESPMaster = false
+ESPName = true
+ESPHealth = true
+ESPDist = true
+ESPTracers = false
+ESPObjects = {}
+TracersList = {}
+
+function CreateESP(character)
+    if not character:FindFirstChild("Head") then return end
+    local existing = character.Head:FindFirstChild("YeoESP")
+    if existing then return end -- No recrear si ya existe (Evita parpadeos)
+
+    local p = Players:GetPlayerFromCharacter(character)
+    if not p then return end
+    local hum = character:FindFirstChildOfClass("Humanoid")
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "YeoESP"
+    billboard.Adornee = character.Head
+    billboard.Size = UDim2.new(0, 120, 0, 36)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = character.Head
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Size = UDim2.new(1, 0, 0, 14)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.Text = p.Name
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 11
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextStrokeTransparency = 0.5
+    nameLabel.Visible = ESPName
+    nameLabel.Parent = billboard
+
+    local healthBg = Instance.new("Frame")
+    healthBg.Name = "HealthBg"
+    healthBg.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    healthBg.BackgroundTransparency = 0.3
+    healthBg.BorderSizePixel = 0
+    healthBg.Size = UDim2.new(0.8, 0, 0, 4)
+    healthBg.Position = UDim2.new(0.1, 0, 0.45, 0)
+    healthBg.Visible = ESPHealth
+    Instance.new("UICorner", healthBg).CornerRadius = UDim.new(1, 0)
+    healthBg.Parent = billboard
+
+    local hpPct = hum and (hum.Health / math.max(hum.MaxHealth, 1)) or 1
+    local healthFill = Instance.new("Frame")
+    healthFill.Name = "HealthFill"
+    healthFill.BackgroundColor3 = hpPct > 0.6 and Color3.fromRGB(0, 255, 120) or (hpPct > 0.3 and Color3.fromRGB(255, 200, 0) or Color3.fromRGB(255, 50, 50))
+    healthFill.BorderSizePixel = 0
+    healthFill.Size = UDim2.new(math.clamp(hpPct, 0, 1), 0, 1, 0)
+    Instance.new("UICorner", healthFill).CornerRadius = UDim.new(1, 0)
+    healthFill.Parent = healthBg
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Name = "DistLabel"
+    distLabel.BackgroundTransparency = 1
+    distLabel.Size = UDim2.new(1, 0, 0, 12)
+    distLabel.Position = UDim2.new(0, 0, 0.65, 0)
+    distLabel.Text = ""
+    distLabel.Font = Enum.Font.GothamSemibold
+    distLabel.TextSize = 9
+    distLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+    distLabel.TextStrokeTransparency = 0.5
+    distLabel.Visible = ESPDist
+    distLabel.Parent = billboard
+
+    table.insert(ESPObjects, billboard)
+end
+
+function ClearTracers()
+    for _, line in pairs(TracersList) do
+        pcall(function()
+            if line.Remove then line:Remove() elseif line.Destroy then line:Destroy() end
+        end)
+    end
+    TracersList = {}
+end
+
+function UpdateTracers()
+    if not ESPMaster or not ESPTracers then
+        ClearTracers()
+        return
+    end
+    
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y - 10)
+    local activePlayers = {}
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local hrpPos, onScreen = camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    table.insert(activePlayers, {Player = p, Pos = Vector2.new(hrpPos.X, hrpPos.Y)})
+                end
+            end
+        end
+    end
+
+    if Drawing then
+        for i, data in ipairs(activePlayers) do
+            local line = TracersList[i]
+            if not line then
+                line = Drawing.new("Line")
+                line.Thickness = 1.5
+                line.Transparency = 0.8
+                TracersList[i] = line
+            end
+            line.Color = currentThemeColor
+            line.From = screenCenter
+            line.To = data.Pos
+            line.Visible = true
+        end
+        for i = #activePlayers + 1, #TracersList do
+            if TracersList[i] then TracersList[i].Visible = false end
+        end
+    end
+end
+
+function ClearESP()
+    for _, obj in pairs(ESPObjects) do
+        if obj and obj.Parent then obj:Destroy() end
+    end
+    ESPObjects = {}
+end
+
+function UpdateESP()
+    if not ESPMaster then 
+        ClearESP()
+        ClearTracers()
+        return 
+    end
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            CreateESP(p.Character)
+        end
+    end
+end
+
+function UpdateESPData()
+    if not ESPMaster then 
+        ClearTracers()
+        return 
+    end
+    local myChar = player.Character
+    local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return end
+
+    for _, billboard in pairs(ESPObjects) do
+        if billboard and billboard.Parent then
+            local char = billboard.Parent.Parent
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hum and hrp then
+                    local hpPct = hum.Health / math.max(hum.MaxHealth, 1)
+                    local hBg = billboard:FindFirstChild("HealthBg")
+                    if hBg then
+                        local hFill = hBg:FindFirstChild("HealthFill")
+                        if hFill then
+                            hFill.Size = UDim2.new(math.clamp(hpPct, 0, 1), 0, 1, 0)
+                            if hpPct > 0.6 then
+                                hFill.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+                            elseif hpPct > 0.3 then
+                                hFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+                            else
+                                hFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                            end
+                        end
+                        hBg.Visible = ESPHealth
+                    end
+                    local dist = math.floor((hrp.Position - myHrp.Position).Magnitude)
+                    local dText = billboard:FindFirstChild("DistLabel")
+                    if dText then
+                        dText.Text = "[" .. dist .. " studs]"
+                        dText.Visible = ESPDist
+                    end
+                    local nText = billboard:FindFirstChild("NameLabel")
+                    if nText then
+                        nText.Visible = ESPName
+                    end
+                end
+            end
+        end
+    end
+
+    UpdateTracers()
+end
+
+spawn(function()
+    while true do
+        wait(0.2)
+        if ESPMaster then
+            UpdateESP()
+            UpdateESPData()
+        end
+    end
+end)
+
+-- ============================================================
+-- AIMLOCK & CAMERA LOOP
+-- ============================================================
+AimlockTargetPlayer = "Nearest"
+
+function getClosestPlayer()
+    local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
+
+    if AimlockTargetPlayer ~= "Nearest" and AimlockTargetPlayer ~= nil then
+        local targetP = Players:FindFirstChild(AimlockTargetPlayer)
+        if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = targetP.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then return targetP.Character end
+        end
+    end
+
+    local closest, closestDist = nil, math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player and not BlacklistedPlayers[p.Name] and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                local dist = (p.Character.HumanoidRootPart.Position - myHrp.Position).Magnitude
+                if dist < closestDist and dist < maxRange then
+                    closestDist = dist
+                    closest = p.Character
+                end
+            end
+        end
+    end
+    return closest
+end
+
+function getClosestNPC()
+    local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not myHrp then return nil end
+    local closest, closestDist = nil, math.huge
+    local enemies = workspace:FindFirstChild("Enemies")
+    if enemies then
+        for _, npc in pairs(enemies:GetChildren()) do
+            if npc:FindFirstChild("HumanoidRootPart") and npc:FindFirstChildOfClass("Humanoid") then
+                if npc:FindFirstChildOfClass("Humanoid").Health > 0 then
+                    local dist = (npc.HumanoidRootPart.Position - myHrp.Position).Magnitude
+                    if dist < closestDist and dist < maxRange then
+                        closestDist = dist
+                        closest = npc
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    if PlayerWidgetActive and AimlockPlayerEnabled then _G.cachedAimPlayer = getClosestPlayer() else _G.cachedAimPlayer = nil end
+    if NpcWidgetActive and AimlockNpcEnabled then _G.cachedAimNPC = getClosestNPC() else _G.cachedAimNPC = nil end
+
+    if PlayerWidgetActive and AimlockPlayerEnabled and _G.cachedAimPlayer then
+        local targetChar = _G.cachedAimPlayer
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+        if targetHRP and targetHum and targetHum.Health > 0 then 
+            local targetPos = targetHRP.Position + Vector3.new(0, 0.5, 0)
+            camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.Position, targetPos), 0.2)
+        end
+    elseif NpcWidgetActive and AimlockNpcEnabled and _G.cachedAimNPC then
+        local targetChar = _G.cachedAimNPC
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Head")
+        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+        if targetHRP and targetHum and targetHum.Health > 0 then 
+            local targetPos = targetHRP.Position + Vector3.new(0, 0.5, 0)
+            camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camera.CFrame.Position, targetPos), 0.2)
+        end
+    end
+end)
+
+-- ============================================================
+-- AURA VFX SYSTEM
+-- ============================================================
+function ClearAura()
+    for _, obj in pairs(AuraObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    AuraObjects = {}
+    ActiveAura = nil
+end
+
+function ApplyAura(auraName)
+    ClearAura()
+    ActiveAura = auraName
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    pcall(function()
+        local colors = {
+            Inferno = {Color3.fromRGB(255, 80, 0), Color3.fromRGB(255, 200, 0)},
+            Electric = {Color3.fromRGB(0, 180, 255), Color3.fromRGB(200, 240, 255)},
+            DarkSpirit = {Color3.fromRGB(120, 0, 200), Color3.fromRGB(180, 60, 255)},
+            Toxic = {Color3.fromRGB(0, 200, 50), Color3.fromRGB(150, 255, 100)},
+            Frost = {Color3.fromRGB(100, 200, 255), Color3.fromRGB(220, 240, 255)},
+        }
+        local c = colors[auraName] or {Color3.fromRGB(255,255,255), Color3.fromRGB(200,200,200)}
+        local att = Instance.new("Attachment", hrp)
+        table.insert(AuraObjects, att)
+        local p = Instance.new("ParticleEmitter", att)
+        p.Color = ColorSequence.new(c[1], c[2])
+        p.Size = NumberSequence.new({NumberSequenceKeypoint.new(0,1.5), NumberSequenceKeypoint.new(1,0)})
+        p.Lifetime = NumberRange.new(0.5, 1.2)
+        p.Rate = 50
+        p.Speed = NumberRange.new(2, 5)
+        p.SpreadAngle = Vector2.new(180, 180)
+        p.LightEmission = 0.8
+        p.LightInfluence = 0
+        table.insert(AuraObjects, p)
+        local light = Instance.new("PointLight", hrp)
+        light.Color = c[1]
+        light.Brightness = 2
+        light.Range = 15
+        table.insert(AuraObjects, light)
+    end)
+end
+
+player.CharacterAdded:Connect(function(newChar)
+    if ActiveAura then
+        task.wait(1)
+        ApplyAura(ActiveAura)
+    end
+end)
+
+-- ============================================================
+-- FAKE BODY & HEADLESS
+-- ============================================================
+function applyFakeKorblox(char)
+    if not char then return end
+    pcall(function()
+        local rUpper = char:FindFirstChild("RightUpperLeg")
+        local rLower = char:FindFirstChild("RightLowerLeg")
+        local rFoot = char:FindFirstChild("RightFoot")
+        if rUpper and rUpper:IsA("BasePart") then rUpper.Transparency = 1 end
+        if rLower and rLower:IsA("BasePart") then rLower.Transparency = 1 end
+        if rFoot and rFoot:IsA("BasePart") then rFoot.Transparency = 1 end
+    end)
+end
+
+function removeFakeKorblox(char)
+    if not char then return end
+    pcall(function()
+        local rUpper = char:FindFirstChild("RightUpperLeg")
+        local rLower = char:FindFirstChild("RightLowerLeg")
+        local rFoot = char:FindFirstChild("RightFoot")
+        if rUpper and rUpper:IsA("BasePart") then rUpper.Transparency = 0 end
+        if rLower and rLower:IsA("BasePart") then rLower.Transparency = 0 end
+        if rFoot and rFoot:IsA("BasePart") then rFoot.Transparency = 0 end
+    end)
+end
+
+function applyFakeHeadless(char)
+    if not char then return end
+    pcall(function()
+        local head = char:FindFirstChild("Head")
+        if head then
+            head.Transparency = 1
+            for _, child in pairs(head:GetChildren()) do
+                if child:IsA("Decal") or child:IsA("Texture") then child.Transparency = 1 end
+            end
+        end
+        for _, acc in pairs(char:GetChildren()) do
+            if acc:IsA("Accessory") then
+                local handle = acc:FindFirstChild("Handle")
+                if handle and handle:IsA("BasePart") then
+                    handle.Transparency = 1
+                    for _, sub in pairs(handle:GetDescendants()) do
+                        if sub:IsA("BasePart") or sub:IsA("MeshPart") or sub:IsA("Decal") or sub:IsA("Texture") then
+                            sub.Transparency = 1
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+function removeFakeHeadless(char)
+    if not char then return end
+    pcall(function()
+        local head = char:FindFirstChild("Head")
+        if head then
+            head.Transparency = 0
+            for _, child in pairs(head:GetChildren()) do
+                if child:IsA("Decal") or child:IsA("Texture") then child.Transparency = 0 end
+            end
+        end
+        for _, acc in pairs(char:GetChildren()) do
+            if acc:IsA("Accessory") then
+                local handle = acc:FindFirstChild("Handle")
+                if handle and handle:IsA("BasePart") then
+                    handle.Transparency = 0
+                    for _, sub in pairs(handle:GetDescendants()) do
+                        if sub:IsA("BasePart") or sub:IsA("MeshPart") or sub:IsA("Decal") or sub:IsA("Texture") then
+                            sub.Transparency = 0
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- ============================================================
+-- THEMES DEFINITIONS
+-- ============================================================
+COLORS = {
+    Background = Color3.fromRGB(15, 12, 22),
+    PanelBG = Color3.fromRGB(22, 18, 32),
+    CardBG = Color3.fromRGB(28, 22, 40),
+    TextWhite = Color3.fromRGB(255, 255, 255),
+    TextGray = Color3.fromRGB(160, 155, 175),
+    ToggleOff = Color3.fromRGB(45, 38, 60),
+    Border = Color3.fromRGB(45, 35, 65)
+}
+
+THEMES = {
+    ["Crimson Red"]  = Color3.fromRGB(255, 30, 60),
+    ["Neon Purple"]  = Color3.fromRGB(170, 0, 255),
+    ["Cyber Cyan"]   = Color3.fromRGB(0, 230, 255),
+    ["Electric Blue"]= Color3.fromRGB(0, 140, 255),
+    ["Acid Green"]   = Color3.fromRGB(50, 255, 100),
+    ["Gold Yellow"]  = Color3.fromRGB(255, 200, 0),
+    ["Hot Pink"]     = Color3.fromRGB(255, 0, 150),
+    ["Snow White"]   = Color3.fromRGB(255, 255, 255),
+}
+
+currentThemeColor = THEMES["Snow White"] -- Default White theme as requested
+themeStrokes = {}
+themeTexts = {}
+themeFrames = {}
+
+-- ============================================================
+-- ACCURATE FPS & PING MEASUREMENT & SCREEN OVERLAY
+-- ============================================================
+local fpsPingGui = Instance.new("ScreenGui")
+fpsPingGui.Name = "SacredUI_FPSPing"
+fpsPingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+fpsPingGui.Parent = playerGui
+
+local fpsPingFrame = Instance.new("Frame", fpsPingGui)
+fpsPingFrame.Size = UDim2.new(0, 140, 0, 24)
+fpsPingFrame.Position = UDim2.new(0.5, -70, 0, 10)
+fpsPingFrame.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+fpsPingFrame.BackgroundTransparency = 0.2
+fpsPingFrame.Visible = false
+fpsPingFrame.Active = true
+fpsPingFrame.Draggable = true
+Instance.new("UICorner", fpsPingFrame).CornerRadius = UDim.new(0, 6)
+
+local fpsPingStroke = Instance.new("UIStroke", fpsPingFrame)
+fpsPingStroke.Color = currentThemeColor
+fpsPingStroke.Thickness = 1.2
+table.insert(themeStrokes, fpsPingStroke)
+
+local fpsPingText = Instance.new("TextLabel", fpsPingFrame)
+fpsPingText.Size = UDim2.new(1, 0, 1, 0)
+fpsPingText.BackgroundTransparency = 1
+fpsPingText.Text = "FPS: 60 | Ping: 0 ms"
+fpsPingText.Font = Enum.Font.GothamBold
+fpsPingText.TextSize = 10
+fpsPingText.TextColor3 = currentThemeColor
+table.insert(themeTexts, fpsPingText)
+
+local fpsHistory = {}
+RunService.RenderStepped:Connect(function(dt)
+    if dt > 0 then
+        table.insert(fpsHistory, 1 / dt)
+        if #fpsHistory > 20 then table.remove(fpsHistory, 1) end
+        local sum = 0
+        for _, v in ipairs(fpsHistory) do sum = sum + v end
+        currentFPS = math.floor(sum / #fpsHistory)
+    end
+    
+    if FPSPingOverlayEnabled then
+        fpsPingFrame.Visible = true
+        fpsPingText.Text = string.format("FPS: %d | Ping: %d ms", currentFPS, currentPing)
+    else
+        fpsPingFrame.Visible = false
+    end
+end)
+
+spawn(function()
+    while true do
+        wait(1)
+        pcall(function()
+            currentPing = math.floor(player:GetNetworkPing() * 1000)
+        end)
+    end
+end)
+
+-- ============================================================
+-- MAIN INTERFACE BUILD
+-- ============================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SacredUI_Main"
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 465, 0, 310)
+mainFrame.Position = UDim2.new(0.5, -232, 0.5, -155)
+mainFrame.BackgroundColor3 = COLORS.Background
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+local mainStroke = Instance.new("UIStroke", mainFrame)
+mainStroke.Color = currentThemeColor; mainStroke.Thickness = 1.5
+table.insert(themeStrokes, mainStroke)
+
+local openButton -- forward declaration for close button callback
+
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.Size = UDim2.new(0, 22, 0, 22)
+closeBtn.Position = UDim2.new(1, -28, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBlack
+closeBtn.TextSize = 13
+closeBtn.TextColor3 = COLORS.TextGray
+closeBtn.ZIndex = 10
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    if openButton then openButton.Visible = true end
+end)
+
+local rainContainer = Instance.new("Frame", mainFrame)
+rainContainer.Size = UDim2.new(1, 0, 1, 0)
+rainContainer.BackgroundTransparency = 1
+rainContainer.ClipsDescendants = true
+
+spawn(function()
+    while true do
+        wait(0.4)
+        if #rainContainer:GetChildren() < 6 then
+            local drop = Instance.new("Frame", rainContainer)
+            drop.Name = "RainDrop"
+            drop.Size = UDim2.new(0, 1, 0, math.random(15, 30))
+            drop.Position = UDim2.new(math.random(), 0, -0.1, 0)
+            drop.BackgroundColor3 = currentThemeColor
+            drop.BackgroundTransparency = 0.6
+            drop.BorderSizePixel = 0
+            TweenService:Create(drop, TweenInfo.new(math.random(15, 25)/10, Enum.EasingStyle.Linear), {
+                Position = UDim2.new(drop.Position.X.Scale, 0, 1.1, 0)
+            }):Play()
+            task.delay(2.5, function() drop:Destroy() end)
+        end
+    end
+end)
+
+local toggleIconGui = Instance.new("ScreenGui")
+toggleIconGui.Name = "SacredUI_ToggleIcon"
+toggleIconGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+toggleIconGui.Parent = playerGui
+
+openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 42, 0, 42)
+openButton.Position = UDim2.new(0, 15, 0, 15)
+openButton.BackgroundColor3 = COLORS.Background
+openButton.Text = "AHK"
+openButton.Font = Enum.Font.GothamBold
+openButton.TextSize = 10
+openButton.TextColor3 = currentThemeColor
+openButton.Visible = false
+openButton.Active = true
+openButton.Draggable = true
+openButton.Parent = toggleIconGui
+Instance.new("UICorner", openButton).CornerRadius = UDim.new(0, 6)
+local openStroke = Instance.new("UIStroke", openButton)
+openStroke.Thickness = 1.2; openStroke.Color = currentThemeColor
+table.insert(themeTexts, openButton)
+table.insert(themeStrokes, openStroke)
+
+openButton.MouseButton1Click:Connect(function()
+    openButton.Visible = false
+    mainFrame.Visible = true
+end)
+
+local sidebar = Instance.new("Frame", mainFrame)
+sidebar.Size = UDim2.new(0, 120, 1, 0)
+sidebar.BackgroundTransparency = 1
+
+local mainTitle = Instance.new("TextLabel", sidebar)
+mainTitle.Text = "SACRED AHK"
+mainTitle.Font = Enum.Font.GothamBlack
+mainTitle.TextSize = 14
+mainTitle.TextColor3 = currentThemeColor
+mainTitle.Size = UDim2.new(1, 0, 0, 16)
+mainTitle.Position = UDim2.new(0, 10, 0, 8)
+mainTitle.BackgroundTransparency = 1
+mainTitle.TextXAlignment = Enum.TextXAlignment.Left
+table.insert(themeTexts, mainTitle)
+
+local subtitleLabel = Instance.new("TextLabel", sidebar)
+subtitleLabel.Text = "by iSacredRivals"
+subtitleLabel.Font = Enum.Font.GothamSemibold
+subtitleLabel.TextSize = 7.5
+subtitleLabel.TextColor3 = COLORS.TextGray
+subtitleLabel.Size = UDim2.new(1, 0, 0, 12)
+subtitleLabel.Position = UDim2.new(0, 10, 0, 24)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local tiktokLabel = Instance.new("TextLabel", mainFrame)
+tiktokLabel.Text = "tiktok: rivalsxrodx"
+tiktokLabel.Font = Enum.Font.GothamSemibold
+tiktokLabel.TextSize = 8
+tiktokLabel.TextColor3 = COLORS.TextGray
+tiktokLabel.Size = UDim2.new(0, 120, 0, 14)
+tiktokLabel.Position = UDim2.new(0.5, -60, 0, 10)
+tiktokLabel.BackgroundTransparency = 1
+tiktokLabel.ZIndex = 5
+
+local PagesContainer = Instance.new("Frame", mainFrame)
+PagesContainer.Size = UDim2.new(0, 315, 1, -45)
+PagesContainer.Position = UDim2.new(0, 130, 0, 35)
+PagesContainer.BackgroundTransparency = 1
+PagesContainer.ClipsDescendants = false
+
+local function createScrollingPage()
+    local sf = Instance.new("ScrollingFrame", PagesContainer)
+    sf.Size = UDim2.new(1, 0, 1, 0)
+    sf.BackgroundTransparency = 1
+    sf.BorderSizePixel = 0
+    sf.ScrollBarThickness = 4
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    sf.CanvasSize = UDim2.new(0, 0, 0, 800)
+    sf.Visible = false
+    local layout = Instance.new("UIListLayout", sf)
+    layout.Padding = UDim.new(0, 8)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    return sf
+end
+
+-- PAGE INSTANCES (10 CATEGORIES)
+local StatsPage = createScrollingPage()
+local AimbotPage = createScrollingPage() -- NUEVA CATEGORÍA AIMBOT
+local CombatPage = createScrollingPage()
+local GlitchesPage = createScrollingPage()
+local CamLockPage = createScrollingPage()
+local SoruPage = createScrollingPage()
+local AppearancePage = createScrollingPage()
+local BlacklistPage = createScrollingPage()
+local SacredVFXPage = createScrollingPage()
+local MiscPage = createScrollingPage()
+StatsPage.Visible = true
+
+local categories = {
+    { name = "Player Stats", page = StatsPage },
+    { name = "Aimbot",       page = AimbotPage },
+    { name = "Combat Main",  page = CombatPage },
+    { name = "Glitches",     page = GlitchesPage },
+    { name = "Cam Lock",     page = CamLockPage },
+    { name = "Soru Engine",  page = SoruPage },
+    { name = "Appearance",   page = AppearancePage },
+    { name = "Aim Blacklist",page = BlacklistPage },
+    { name = "Sacred VFX",   page = SacredVFXPage },
+    { name = "Misc",         page = MiscPage },
+}
+
+local activeTabBtn = nil
+for i, cat in ipairs(categories) do
+    local yPos = 40 + (i - 1) * 25
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Text = cat.name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10.5
+    btn.TextColor3 = (cat.page == StatsPage) and currentThemeColor or COLORS.TextGray
+    btn.Size = UDim2.new(1, -10, 0, 23)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundTransparency = 1
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    if cat.page == StatsPage then
+        activeTabBtn = btn
+        table.insert(themeTexts, btn)
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        if activeTabBtn then
+            activeTabBtn.TextColor3 = COLORS.TextGray
+            local idx = table.find(themeTexts, activeTabBtn)
+            if idx then table.remove(themeTexts, idx) end
+        end
+        activeTabBtn = btn
+        table.insert(themeTexts, btn)
+        btn.TextColor3 = currentThemeColor
+        for _, c in ipairs(categories) do c.page.Visible = false end
+        cat.page.Visible = true
+    end)
+end
+
+-- MODULE CARD & UI COMPONENT HELPERS
+local function createModuleCard(titleText, heightPx, parentPage)
+    local card = Instance.new("Frame", parentPage)
+    card.Size = UDim2.new(0.96, 0, 0, heightPx)
+    card.BackgroundColor3 = COLORS.CardBG
+    card.BorderSizePixel = 0
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+
+    local stroke = Instance.new("UIStroke", card)
+    stroke.Color = COLORS.Border; stroke.Thickness = 1
+
+    local title = Instance.new("TextLabel", card)
+    title.Text = titleText
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 10
+    title.TextColor3 = currentThemeColor
+    title.Size = UDim2.new(1, -12, 0, 20)
+    title.Position = UDim2.new(0, 6, 0, 2)
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    table.insert(themeTexts, title)
+
+    return card
+end
+
+local function addToggleElement(parent, labelText, defaultState, yPos, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -12, 0, 20)
+    frame.Position = UDim2.new(0, 6, 0, yPos)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = labelText
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 8.5
+    label.TextColor3 = COLORS.TextWhite
+    label.Size = UDim2.new(0.65, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local clickBtn = Instance.new("TextButton", frame)
+    clickBtn.Size = UDim2.new(0, 30, 0, 13)
+    clickBtn.Position = UDim2.new(1, -30, 0.5, -6)
+    clickBtn.BackgroundColor3 = defaultState and currentThemeColor or COLORS.ToggleOff
+    clickBtn.Text = defaultState and "ON" or "OFF"
+    clickBtn.Font = Enum.Font.GothamBold
+    clickBtn.TextSize = 7
+    clickBtn.TextColor3 = defaultState and Color3.fromRGB(15, 10, 20) or COLORS.TextWhite
+    Instance.new("UICorner", clickBtn).CornerRadius = UDim.new(0, 4)
+    if defaultState then table.insert(themeFrames, clickBtn) end
+
+    local state = defaultState
+    local function refresh()
+        if state then
+            clickBtn.BackgroundColor3 = currentThemeColor
+            clickBtn.Text = "ON"
+            clickBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
+            if not table.find(themeFrames, clickBtn) then table.insert(themeFrames, clickBtn) end
+        else
+            clickBtn.BackgroundColor3 = COLORS.ToggleOff
+            clickBtn.Text = "OFF"
+            clickBtn.TextColor3 = COLORS.TextWhite
+            local idx = table.find(themeFrames, clickBtn)
+            if idx then table.remove(themeFrames, idx) end
+        end
+    end
+
+    local function setExternalState(newState)
+        state = newState
+        refresh()
+        callback(state)
+    end
+
+    table.insert(ToggleRegistry, function(val) setExternalState(val) end)
+
+    clickBtn.MouseButton1Click:Connect(function()
+        state = not state
+        refresh()
+        callback(state)
+        if state then totalExecutions = totalExecutions + 1 end
+    end)
+    
+    return setExternalState, clickBtn
+end
+
+local function addStepper(parent, labelText, yPos, minVal, maxVal, step, getter, setter, suffix)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -12, 0, 28)
+    frame.Position = UDim2.new(0, 6, 0, yPos)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = labelText
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 8.5
+    label.TextColor3 = COLORS.TextWhite
+    label.Size = UDim2.new(0.35, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local minus = Instance.new("TextButton", frame)
+    minus.Size = UDim2.new(0, 22, 0, 18)
+    minus.Position = UDim2.new(0.38, 0, 0.5, -9)
+    minus.Text = "-"
+    minus.Font = Enum.Font.GothamBold
+    minus.TextSize = 12
+    minus.BackgroundColor3 = COLORS.ToggleOff
+    minus.TextColor3 = COLORS.TextWhite
+    Instance.new("UICorner", minus).CornerRadius = UDim.new(0, 4)
+
+    local valueLabel = Instance.new("TextLabel", frame)
+    valueLabel.Size = UDim2.new(0.4, -38, 0, 18)
+    valueLabel.Position = UDim2.new(0.38, 24, 0.5, -9)
+    valueLabel.Text = tostring(getter()) .. suffix
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextSize = 9
+    valueLabel.TextColor3 = COLORS.TextWhite
+    valueLabel.BackgroundTransparency = 1
+    table.insert(themeTexts, valueLabel)
+
+    local plus = Instance.new("TextButton", frame)
+    plus.Size = UDim2.new(0, 22, 0, 18)
+    plus.Position = UDim2.new(1, -24, 0.5, -9)
+    plus.Text = "+"
+    plus.Font = Enum.Font.GothamBold
+    plus.TextSize = 12
+    plus.BackgroundColor3 = COLORS.ToggleOff
+    plus.TextColor3 = COLORS.TextWhite
+    Instance.new("UICorner", plus).CornerRadius = UDim.new(0, 4)
+
+    minus.MouseButton1Click:Connect(function()
+        local v = math.max(getter() - step, minVal); setter(v)
+        valueLabel.Text = tostring(v) .. suffix
+    end)
+    plus.MouseButton1Click:Connect(function()
+        local v = math.min(getter() + step, maxVal); setter(v)
+        valueLabel.Text = tostring(v) .. suffix
+    end)
+    
+    return valueLabel
+end
+
+-- ============================================================
+-- PAGE CONTENT BUILD
+-- ============================================================
+
+-- 1. PLAYER STATS TAB
+local statsCard = createModuleCard("Player Profile", 300, StatsPage)
+
+local profileImg = Instance.new("ImageLabel", statsCard)
+profileImg.Size = UDim2.new(0, 75, 0, 75)
+profileImg.Position = UDim2.new(0.5, -37, 0, 20)
+profileImg.BackgroundColor3 = COLORS.Background
+profileImg.ScaleType = Enum.ScaleType.Crop
+profileImg.BorderSizePixel = 0
+Instance.new("UICorner", profileImg).CornerRadius = UDim.new(0, 38)
+local pStroke = Instance.new("UIStroke", profileImg)
+pStroke.Color = currentThemeColor; pStroke.Thickness = 2
+table.insert(themeStrokes, pStroke)
+
+spawn(function()
+    pcall(function()
+        profileImg.Image = Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+    end)
+end)
+
+local nameLabel = Instance.new("TextLabel", statsCard)
+nameLabel.Text = player.Name
+nameLabel.Font = Enum.Font.GothamBlack
+nameLabel.TextSize = 16
+nameLabel.TextColor3 = currentThemeColor
+nameLabel.Size = UDim2.new(1, 0, 0, 20)
+nameLabel.Position = UDim2.new(0, 0, 0, 105)
+nameLabel.BackgroundTransparency = 1
+table.insert(themeTexts, nameLabel)
+
+local levelLabel = Instance.new("TextLabel", statsCard)
+levelLabel.Text = "Level: Loading..."
+levelLabel.Font = Enum.Font.GothamBold
+levelLabel.TextSize = 12
+levelLabel.TextColor3 = COLORS.TextWhite
+levelLabel.Size = UDim2.new(1, 0, 0, 18)
+levelLabel.Position = UDim2.new(0, 0, 0, 128)
+levelLabel.BackgroundTransparency = 1
+
+local bountyLabel = Instance.new("TextLabel", statsCard)
+bountyLabel.Text = "Bounty: Loading..."
+bountyLabel.Font = Enum.Font.GothamBold
+bountyLabel.TextSize = 12
+bountyLabel.TextColor3 = COLORS.TextWhite
+bountyLabel.Size = UDim2.new(1, 0, 0, 18)
+bountyLabel.Position = UDim2.new(0, 0, 0, 148)
+bountyLabel.BackgroundTransparency = 1
+
+local div = Instance.new("Frame", statsCard)
+div.Size = UDim2.new(1, -20, 0, 1)
+div.Position = UDim2.new(0, 10, 0, 175)
+div.BackgroundColor3 = COLORS.ToggleOff
+div.BorderSizePixel = 0
+
+local statsTitle = Instance.new("TextLabel", statsCard)
+statsTitle.Text = "Script Usage Stats"
+statsTitle.Font = Enum.Font.GothamBold
+statsTitle.TextSize = 10.5
+statsTitle.TextColor3 = currentThemeColor
+statsTitle.Size = UDim2.new(1, 0, 0, 18)
+statsTitle.Position = UDim2.new(0, 10, 0, 182)
+statsTitle.BackgroundTransparency = 1
+statsTitle.TextXAlignment = Enum.TextXAlignment.Left
+table.insert(themeTexts, statsTitle)
+
+local function createStatLabel(parent, yPos, symbol, labelText)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -20, 0, 22)
+    frame.Position = UDim2.new(0, 10, 0, yPos)
+    frame.BackgroundTransparency = 1
+    
+    local iconLabel = Instance.new("TextLabel", frame)
+    iconLabel.Size = UDim2.new(0, 16, 1, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = symbol
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.TextSize = 11
+    iconLabel.TextColor3 = currentThemeColor
+    iconLabel.TextXAlignment = Enum.TextXAlignment.Left
+    table.insert(themeTexts, iconLabel)
+    
+    local textLbl = Instance.new("TextLabel", frame)
+    textLbl.Size = UDim2.new(1, -20, 1, 0)
+    textLbl.Position = UDim2.new(0, 16, 0, 0)
+    textLbl.BackgroundTransparency = 1
+    textLbl.Text = labelText
+    textLbl.Font = Enum.Font.GothamSemibold
+    textLbl.TextSize = 11
+    textLbl.TextColor3 = COLORS.TextWhite
+    textLbl.TextXAlignment = Enum.TextXAlignment.Left
+    
+    return textLbl
+end
+
+local timeLbl = createStatLabel(statsCard, 202, "•", "Time Used: 00:00:00")
+local execLbl = createStatLabel(statsCard, 226, "•", "Executions: 0")
+local bountyLblStats = createStatLabel(statsCard, 250, "•", "Bounty Gained: 0")
+
+local function formatNumber(n)
+    if type(n) ~= "number" then return tostring(n) end
+    local formatted = tostring(n)
+    while true do
+        local k
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+local function getGameStat(statName)
+    local val = nil
+    local attr = player:GetAttribute(statName)
+    if attr ~= nil then val = attr end
+
+    if val == nil then
+        local data = player:FindFirstChild("Data")
+        if data then
+            local lvlObj = data:FindFirstChild(statName)
+            if lvlObj and lvlObj:IsA("ValueBase") then val = lvlObj.Value end
+        end
+    end
+
+    if val == nil then
+        local ls = player:FindFirstChild("leaderstats")
+        if ls then
+            local lvlObj = ls:FindFirstChild(statName)
+            if lvlObj and lvlObj:IsA("ValueBase") then val = lvlObj.Value end
+        end
+    end
+    return val
+end
+
+local function getLevelStat()
+    local val = nil
+    local attr = player:GetAttribute("Level")
+    if attr ~= nil then val = attr end
+    if val == nil then
+        local data = player:FindFirstChild("Data")
+        if data then
+            local lvlObj = data:FindFirstChild("Level") or data:FindFirstChild("Nivel")
+            if lvlObj and lvlObj:IsA("ValueBase") then val = lvlObj.Value end
+        end
+    end
+    if val == nil then
+        local ls = player:FindFirstChild("leaderstats")
+        if ls then
+            local lvlObj = ls:FindFirstChild("Level") or ls:FindFirstChild("Nivel")
+            if lvlObj and lvlObj:IsA("ValueBase") then val = lvlObj.Value end
+        end
+    end
+    return val
+end
+
+local function getBountyValue()
+    local b = tonumber(getGameStat("Bounty")) or 0
+    local h = tonumber(getGameStat("Honor")) or 0
+    if b == 0 and h == 0 then
+        pcall(function()
+            local data = player:FindFirstChild("Data")
+            if data then
+                for _, child in pairs(data:GetChildren()) do
+                    local nm = string.lower(child.Name)
+                    if (string.find(nm, "bounty") or string.find(nm, "honor")) and child:IsA("ValueBase") then
+                        local v = tonumber(child.Value) or 0
+                        if v > b then b = v end
+                    end
+                end
+            end
+        end)
+    end
+    return math.max(b, h)
+end
+
+spawn(function()
+    task.wait(1)
+    startBounty = getBountyValue()
+    while true do
+        pcall(function()
+            local currBounty = getBountyValue()
+            if (startBounty == 0 or startBounty == nil) and currBounty > 0 then startBounty = currBounty end
+            local bountyGained = math.max(currBounty - startBounty, 0)
+            
+            local elapsed = os.time() - scriptStartTime
+            local h = math.floor(elapsed / 3600)
+            local m = math.floor((elapsed % 3600) / 60)
+            local s = math.floor(elapsed % 60)
+            local timeStr = string.format("%02d:%02d:%02d", h, m, s)
+
+            local rawLvl = tonumber(getLevelStat()) or 0
+            if rawLvl > maxLevelSeen then maxLevelSeen = rawLvl end
+            local levelVal = maxLevelSeen > 0 and maxLevelSeen or rawLvl
+
+            levelLabel.Text = "Level: " .. formatNumber(levelVal)
+            bountyLabel.Text = "Bounty: " .. (currBounty > 0 and formatNumber(currBounty) or "0")
+            
+            timeLbl.Text = "Time Used: " .. timeStr
+            execLbl.Text = "Executions: " .. tostring(totalExecutions)
+            bountyLblStats.Text = "Bounty Gained: " .. formatNumber(bountyGained)
+        end)
+        task.wait(1)
+    end
+end)
+
+-- 2. AIMBOT TAB (NUEVA CATEGORÍA PRINCIPAL)
+local aimbotCard = createModuleCard("Aimbot Settings", 245, AimbotPage)
+addToggleElement(aimbotCard, "Skill Aimbot", _G.G_SilentAimSkill, 24, function(v) _G.G_SilentAimSkill = v end)
+addToggleElement(aimbotCard, "M1 Aimbot", _G.G_SilentAimM1R, 48, function(v) _G.G_SilentAimM1R = v end)
+
+local setTeamCheckToggleState
+local setTargetPlayersState = addToggleElement(aimbotCard, "Target Players", _G.G_SilentAimTargetPlayers, 72, function(v)
+    _G.G_SilentAimTargetPlayers = v
+    if v then
+        _G.G_SilentAimTeamCheck = true
+        if setTeamCheckToggleState then setTeamCheckToggleState(true) end
+    end
+end)
+addToggleElement(aimbotCard, "Target NPCs", _G.G_SilentAimTargetMobs, 96, function(v) _G.G_SilentAimTargetMobs = v end)
+
+setTeamCheckToggleState = addToggleElement(aimbotCard, "Team Check (Auto)", _G.G_SilentAimTeamCheck, 120, function(v) _G.G_SilentAimTeamCheck = v end)
+addToggleElement(aimbotCard, "Show Lock Line", _G.G_SilentAimShowLine, 144, function(v) _G.G_SilentAimShowLine = v end)
+addToggleElement(aimbotCard, "\240\159\144\137 Dragon Gun M1", _G.G_DragonGunM1, 168, function(v) _G.G_DragonGunM1 = v; updateDragonBtnVisual() end)
+
+local aimbotTargetSelectBtn = Instance.new("TextButton", aimbotCard)
+aimbotTargetSelectBtn.Size = UDim2.new(1, -20, 0, 22)
+aimbotTargetSelectBtn.Position = UDim2.new(0, 10, 0, 192)
+aimbotTargetSelectBtn.BackgroundColor3 = COLORS.Background
+aimbotTargetSelectBtn.Text = "🎯 Target: " .. (AimlockTargetPlayer or "Nearest")
+aimbotTargetSelectBtn.Font = Enum.Font.GothamBold
+aimbotTargetSelectBtn.TextSize = 8.5
+aimbotTargetSelectBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", aimbotTargetSelectBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, aimbotTargetSelectBtn)
+
+aimbotTargetSelectBtn.MouseButton1Click:Connect(function()
+    local plist = {"Nearest"}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then table.insert(plist, p.Name) end
+    end
+    local currIdx = table.find(plist, AimlockTargetPlayer) or 1
+    local nextIdx = (currIdx % #plist) + 1
+    AimlockTargetPlayer = plist[nextIdx]
+    aimbotTargetSelectBtn.Text = "🎯 Target: " .. AimlockTargetPlayer
+end)
+
+local dragonWarnLabel = Instance.new("TextLabel", aimbotCard)
+dragonWarnLabel.Size = UDim2.new(1, -16, 0, 14)
+dragonWarnLabel.Position = UDim2.new(0, 8, 0, 220)
+dragonWarnLabel.BackgroundTransparency = 1
+dragonWarnLabel.Text = "⚠ Ban Risk / Riesgo de Ban"
+dragonWarnLabel.Font = Enum.Font.GothamBold
+dragonWarnLabel.TextSize = 8
+dragonWarnLabel.TextColor3 = Color3.fromRGB(255, 80, 50)
+dragonWarnLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local fovCard = createModuleCard("FOV Range (Screen Center)", 85, AimbotPage)
+addToggleElement(fovCard, "Show FOV Circle", _G.G_SilentAimShowFOV, 24, function(v) 
+    _G.G_SilentAimShowFOV = v 
+    if FOVCircle then FOVCircle.Visible = v end
+end)
+addStepper(fovCard, "FOV Radius:", 48, 10, 1500, 20, function() return _G.G_SilentAimFOV end, function(v) 
+    _G.G_SilentAimFOV = v 
+    if FOVCircle then FOVCircle.Radius = v end
+end, "px")
+
+-- 3. COMBAT MAIN TAB (Limpio, sin silent aim duplicado)
+local c2 = createModuleCard("Fast Attack", 90, CombatPage)
+addToggleElement(c2, "Fast Attack", FastAttackEnabled, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
+addStepper(c2, "Range:", 52, 100, 5000, 50, function() return FastAttackRange end, function(v) FastAttackRange = v end, "")
+
+local c3 = createModuleCard("Movement & Physics", 240, CombatPage)
+addToggleElement(c3, "Walk Speed", WalkSpeedEnabled, 24, function(v) WalkSpeedEnabled = v end)
+addStepper(c3, "Speed:", 52, 16, 500, 50, function() return WalkSpeedValue end, function(v) WalkSpeedValue = v end, "")
+
+addToggleElement(c3, "Dash Distance", DashEnabled, 88, function(v) 
+    DashEnabled = v 
+    if v then startDashLoop() else stopDashLoop() end 
+end)
+addStepper(c3, "Distance:", 116, 1, 300, 10, function() return DashLengthDist end, function(v) 
+    DashLengthDist = v
+    if DashEnabled then applyDashInstantly() end
+end, "")
+
+addToggleElement(c3, "Noclip", NoclipEnabled, 152, function(v) SetNoclip(v) end)
+addToggleElement(c3, "Walk on Water", WalkOnWaterEnabled, 176, function(v) WalkOnWaterEnabled = v end)
+
+local c4 = createModuleCard("Race V4", 50, CombatPage)
+addToggleElement(c4, "Smart Auto V4", SmartAutoV4Enabled, 24, function(v) SmartAutoV4Enabled = v end)
+
+-- 4. GLITCHES TAB
+local glitchCard = createModuleCard("Sanguine Z Manual", 50, GlitchesPage)
+local DROP_TO_FPS_MANUAL = 20
+local LAG_DURATION_MANUAL = 0.43
+local lagBusyManual = false
+
+local function dropFPSManual()
+    if lagBusyManual then return end
+    lagBusyManual = true
+    local stop = tick() + LAG_DURATION_MANUAL
+    local interval = 1 / DROP_TO_FPS_MANUAL
+    local con
+    con = RunService.RenderStepped:Connect(function()
+        if tick() > stop then if con then con:Disconnect() end; return end
+        local now = tick()
+        while tick() - now < interval do end
+    end)
+    task.wait(LAG_DURATION_MANUAL + 0.03)
+    lagBusyManual = false
+end
+
+addToggleElement(glitchCard, "Sanguine Z Lag", false, 24, function(v)
+    if v then
+        task.spawn(function()
+            dropFPSManual()
+        end)
+    end
+end)
+
+local sjCard = createModuleCard("Super Jump", 50, GlitchesPage)
+addToggleElement(sjCard, "Super Jump", SuperJumpEnabled, 24, function(v)
+    SuperJumpEnabled = v
+    if v then
+        spawn(function()
+            while SuperJumpEnabled do
+                wait(0.1)
+                pcall(function()
+                    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+                    if hum then hum.JumpPower = SuperJumpPower end
+                end)
+            end
+            pcall(function()
+                local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum.JumpPower = 50 end
+            end)
+        end)
+    end
+end)
+
+local sangAutoCard = createModuleCard("Sanguine Auto Z Drop", 75, GlitchesPage)
+addToggleElement(sangAutoCard, "Auto Z Drop", SanguineAutoEnabled, 24, function(v)
+    SanguineAutoEnabled = v
+    if v then
+        spawn(function()
+            while SanguineAutoEnabled do
+                if not SanguineAutoCooldown then
+                    SanguineAutoCooldown = true
+                    dropFPSManual()
+                    task.wait(SanguineAutoDropDuration)
+                    SanguineAutoCooldown = false
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+addStepper(sangAutoCard, "Cooldown:", 48, 0.5, 10, 0.5, function() return SanguineAutoDropDuration end, function(v) SanguineAutoDropDuration = v end, "s")
+
+local sgCard = createModuleCard("Soul Guitar Jump", 75, GlitchesPage)
+addToggleElement(sgCard, "Soul Guitar Jump", SoulGuitarJumpEnabled, 24, function(v)
+    SoulGuitarJumpEnabled = v
+    if v then
+        spawn(function()
+            while SoulGuitarJumpEnabled do
+                wait(0.1)
+                pcall(function()
+                    local char = player.Character
+                    if char then
+                        if char:GetAttribute("DashLength") ~= SoulGuitarDashLength then char:SetAttribute("DashLength", SoulGuitarDashLength) end
+                        if char:GetAttribute("DashLengthAir") ~= SoulGuitarDashLength then char:SetAttribute("DashLengthAir", SoulGuitarDashLength) end
+                    end
+                end)
+            end
+            pcall(function()
+                local char = player.Character
+                if char and not DashEnabled then
+                    char:SetAttribute("DashLength", 1)
+                    char:SetAttribute("DashLengthAir", 1)
+                end
+            end)
+        end)
+    end
+end)
+addStepper(sgCard, "Dash Length:", 48, 1, 500, 10, function() return SoulGuitarDashLength end, function(v) SoulGuitarDashLength = v end, "")
+
+-- 5. CAM LOCK TAB
+local aimlockCard = createModuleCard("Camera Aimlock", 105, CamLockPage)
+local setPlayerLockState = addToggleElement(aimlockCard, "Lock Players", PlayerWidgetActive, 24, function(v)
+    PlayerWidgetActive = v
+    if not v then AimlockPlayerEnabled = false end
+end)
+local setNpcLockState = addToggleElement(aimlockCard, "Lock NPCs", NpcWidgetActive, 48, function(v)
+    NpcWidgetActive = v
+    if not v then AimlockNpcEnabled = false end
+end)
+
+local aimlockTargetBtn = Instance.new("TextButton", aimlockCard)
+aimlockTargetBtn.Size = UDim2.new(1, -20, 0, 22)
+aimlockTargetBtn.Position = UDim2.new(0, 10, 0, 74)
+aimlockTargetBtn.BackgroundColor3 = COLORS.Background
+aimlockTargetBtn.Text = "🎯 Target: " .. (AimlockTargetPlayer or "Nearest")
+aimlockTargetBtn.Font = Enum.Font.GothamBold
+aimlockTargetBtn.TextSize = 8.5
+aimlockTargetBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", aimlockTargetBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, aimlockTargetBtn)
+
+aimlockTargetBtn.MouseButton1Click:Connect(function()
+    local plist = {"Nearest"}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then table.insert(plist, p.Name) end
+    end
+    local currIdx = table.find(plist, AimlockTargetPlayer) or 1
+    local nextIdx = (currIdx % #plist) + 1
+    AimlockTargetPlayer = plist[nextIdx]
+    aimlockTargetBtn.Text = "🎯 Target: " .. AimlockTargetPlayer
+end)
+
+local espCard = createModuleCard("ESP Players", 140, CamLockPage)
+addToggleElement(espCard, "Master ESP", ESPMaster, 24, function(v) ESPMaster = v; if v then UpdateESP() else ClearESP(); ClearTracers() end end)
+addToggleElement(espCard, "Show Names", ESPName, 48, function(v) ESPName = v end)
+addToggleElement(espCard, "Show Health", ESPHealth, 72, function(v) ESPHealth = v end)
+addToggleElement(espCard, "Show Distance", ESPDist, 96, function(v) ESPDist = v end)
+addToggleElement(espCard, "ESP Tracers", ESPTracers, 118, function(v) ESPTracers = v; if not v then ClearTracers() end end)
+
+-- 6. SORU ENGINE TAB
+local soruCard = createModuleCard("Soru Engine", 140, SoruPage)
+addToggleElement(soruCard, "Infinite Soru", SoruInfinitoEnabled, 24, function(v)
+    SoruInfinitoEnabled = v
+    if v then
+        spawn(function()
+            while SoruInfinitoEnabled do
+                pcall(function()
+                    local char = player.Character
+                    if char then
+                        char:SetAttribute("FlashStepCooldown", 0)
+                        char:SetAttribute("SoruCooldown", 0)
+                        char:SetAttribute("DashCooldown", 0)
+                        char:SetAttribute("FlashStepCharges", 3)
+                    end
+                end)
+                wait(0.05)
+            end
+        end)
+    end
+end)
+addToggleElement(soruCard, "Portal Soru Combo", PortalSoruEnabled, 48, function(v) PortalSoruEnabled = v end)
+addToggleElement(soruCard, "Portal Sanguine C Combo", PortalSanguineCEnabled, 72, function(v) PortalSanguineCEnabled = v end)
+
+local triggerSelectBtn = Instance.new("TextButton", soruCard)
+triggerSelectBtn.Size = UDim2.new(1, -20, 0, 22)
+triggerSelectBtn.Position = UDim2.new(0, 10, 0, 102)
+triggerSelectBtn.BackgroundColor3 = COLORS.Background
+triggerSelectBtn.Text = "⚡ Trigger: " .. (PortalSanguineCTriggerMode == "PortalF" and "Portal F Skill" or "Soru / Flashstep")
+triggerSelectBtn.Font = Enum.Font.GothamBold
+triggerSelectBtn.TextSize = 8.5
+triggerSelectBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", triggerSelectBtn).CornerRadius = UDim.new(0, 4)
+table.insert(themeTexts, triggerSelectBtn)
+
+triggerSelectBtn.MouseButton1Click:Connect(function()
+    if PortalSanguineCTriggerMode == "PortalF" then
+        PortalSanguineCTriggerMode = "Soru"
+        triggerSelectBtn.Text = "⚡ Trigger: Soru / Flashstep"
+    else
+        PortalSanguineCTriggerMode = "PortalF"
+        triggerSelectBtn.Text = "⚡ Trigger: Portal F Skill"
+    end
+end)
+
+-- 7. APPEARANCE TAB
+local fakeBodyCard = createModuleCard("Fake Body", 75, AppearancePage)
+addToggleElement(fakeBodyCard, "Fake Korblox", FakeKorbloxEnabled, 24, function(v)
+    FakeKorbloxEnabled = v
+    if v then applyFakeKorblox(player.Character) else removeFakeKorblox(player.Character) end
+end)
+addToggleElement(fakeBodyCard, "Fake Headless", FakeHeadlessEnabled, 48, function(v)
+    FakeHeadlessEnabled = v
+    if v then applyFakeHeadless(player.Character) else removeFakeHeadless(player.Character) end
+end)
+
+local auraCard = createModuleCard("Aura VFX", 150, AppearancePage)
+local auraSetters = {}
+local auraNames = {"Inferno", "Electric", "DarkSpirit", "Toxic", "Frost"}
+local auraIcons = {"🔥", "⚡", "💜", "💚", "❄️"}
+
+for i, auraName in ipairs(auraNames) do
+    local yPos = 24 + (i - 1) * 24
+    local setter, btn = addToggleElement(auraCard, auraIcons[i] .. " " .. auraName, false, yPos, function(v)
+        if v then
+            for j, otherName in ipairs(auraNames) do
+                if otherName ~= auraName and auraSetters[otherName] then auraSetters[otherName](false) end
+            end
+            ApplyAura(auraName)
+        else
+            ClearAura()
+        end
+    end)
+    auraSetters[auraName] = setter
+end
+
+-- 8. AIM BLACKLIST TAB
+local blacklistCard = createModuleCard("Silent Aim Blacklist", 30, BlacklistPage)
+
+local refreshListBtn = Instance.new("TextButton", BlacklistPage)
+refreshListBtn.Size = UDim2.new(1, -8, 0, 24)
+refreshListBtn.Position = UDim2.new(0, 4, 0, 36)
+refreshListBtn.BackgroundColor3 = COLORS.PanelBG
+refreshListBtn.Text = "⟳ Refresh Player List"
+refreshListBtn.Font = Enum.Font.GothamBold
+refreshListBtn.TextSize = 9.5
+refreshListBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", refreshListBtn).CornerRadius = UDim.new(0, 6)
+table.insert(themeTexts, refreshListBtn)
+
+local blacklistScroll = Instance.new("ScrollingFrame", BlacklistPage)
+blacklistScroll.Size = UDim2.new(1, -8, 1, -70)
+blacklistScroll.Position = UDim2.new(0, 4, 0, 64)
+blacklistScroll.BackgroundColor3 = COLORS.PanelBG
+blacklistScroll.BorderSizePixel = 0
+blacklistScroll.ScrollBarThickness = 4
+blacklistScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+blacklistScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Instance.new("UICorner", blacklistScroll).CornerRadius = UDim.new(0, 6)
+Instance.new("UIListLayout", blacklistScroll).Padding = UDim.new(0, 4)
+Instance.new("UIPadding", blacklistScroll).PaddingTop = UDim.new(0, 6)
+
+local function refreshBlacklistUI()
+    for _, item in ipairs(blacklistScroll:GetChildren()) do
+        if item:IsA("Frame") or item:IsA("TextLabel") then item:Destroy() end
+    end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= player then
+            local isBlacklisted = BlacklistedPlayers[p.Name] == true
+            local row = Instance.new("Frame", blacklistScroll)
+            row.Size = UDim2.new(1, -10, 0, 26)
+            row.BackgroundColor3 = COLORS.Background
+            row.BorderSizePixel = 0
+            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
+            Instance.new("UIPadding", row).PaddingLeft = UDim.new(0, 8)
+            
+            local nameL = Instance.new("TextLabel", row)
+            nameL.Text = p.Name
+            nameL.Font = Enum.Font.GothamSemibold
+            nameL.TextSize = 9.5
+            nameL.TextColor3 = isBlacklisted and Color3.fromRGB(255, 80, 80) or COLORS.TextWhite
+            nameL.Size = UDim2.new(0.7, 0, 1, 0)
+            nameL.BackgroundTransparency = 1
+            nameL.TextXAlignment = Enum.TextXAlignment.Left
+            
+            local toggleBtn = Instance.new("TextButton", row)
+            toggleBtn.Size = UDim2.new(0, 40, 0, 16)
+            toggleBtn.Position = UDim2.new(1, -48, 0.5, -8)
+            toggleBtn.BackgroundColor3 = isBlacklisted and Color3.fromRGB(255, 60, 60) or COLORS.ToggleOff
+            toggleBtn.Text = isBlacklisted and "BAN" or "OK"
+            toggleBtn.Font = Enum.Font.GothamBold
+            toggleBtn.TextSize = 7.5
+            toggleBtn.TextColor3 = COLORS.TextWhite
+            Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 4)
+            
+            toggleBtn.MouseButton1Click:Connect(function()
+                BlacklistedPlayers[p.Name] = not (BlacklistedPlayers[p.Name] == true)
+                refreshBlacklistUI()
+            end)
+        end
+    end
+end
+
+refreshListBtn.MouseButton1Click:Connect(refreshBlacklistUI)
+Players.PlayerAdded:Connect(refreshBlacklistUI)
+Players.PlayerRemoving:Connect(refreshBlacklistUI)
+
+-- 9. SACRED VFX PAGE
+local vfxMainCard = createModuleCard("Sacred VFX", 110, SacredVFXPage)
+
+local vfxTitle = Instance.new("TextLabel", vfxMainCard)
+vfxTitle.Text = "✨ SACRED VFX ✨"
+vfxTitle.Font = Enum.Font.GothamBlack
+vfxTitle.TextSize = 16
+vfxTitle.TextColor3 = currentThemeColor
+vfxTitle.Size = UDim2.new(1, -16, 0, 24)
+vfxTitle.Position = UDim2.new(0, 8, 0, 20)
+vfxTitle.BackgroundTransparency = 1
+table.insert(themeTexts, vfxTitle)
+
+local vfxWarning = Instance.new("TextLabel", vfxMainCard)
+vfxWarning.Text = "⚠️ Puede dar lag en celulares de baja gama"
+vfxWarning.Font = Enum.Font.GothamSemibold
+vfxWarning.TextSize = 9
+vfxWarning.TextColor3 = Color3.fromRGB(255, 180, 50)
+vfxWarning.Size = UDim2.new(1, -16, 0, 16)
+vfxWarning.Position = UDim2.new(0, 8, 0, 44)
+vfxWarning.BackgroundTransparency = 1
+
+local vfxActionBtn = Instance.new("TextButton", vfxMainCard)
+vfxActionBtn.Size = UDim2.new(1, -20, 0, 28)
+vfxActionBtn.Position = UDim2.new(0, 10, 0, 68)
+vfxActionBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+vfxActionBtn.Text = "🚀 Activar Sacred VFX"
+vfxActionBtn.Font = Enum.Font.GothamBold
+vfxActionBtn.TextSize = 11
+vfxActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", vfxActionBtn).CornerRadius = UDim.new(0, 8)
+local vfxActionStroke = Instance.new("UIStroke", vfxActionBtn)
+vfxActionStroke.Color = Color3.fromRGB(220, 100, 255)
+vfxActionStroke.Thickness = 1.5
+
+local _VFX_URL_BYTES = {50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 51, 9, 59, 57, 40, 63, 62, 8, 51, 44, 59, 54, 41, 117, 9, 59, 57, 40, 63, 62, 12, 28, 2, 44, 104, 117, 55, 59, 51, 52, 117, 9, 59, 57, 40, 63, 62, 44, 60, 34, 116, 54, 47, 59}
+
+vfxActionBtn.MouseButton1Click:Connect(function()
+    vfxActionBtn.Text = "⏳ Cargando Mod..."
+    vfxActionBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+    task.spawn(function()
+        pcall(function()
+            loadstring(game:HttpGet(_decodeUrl(_VFX_URL_BYTES)))()
+        end)
+        vfxActionBtn.Text = "✅ Sacred VFX Activado!"
+        vfxActionBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+    end)
+end)
+
+-- 10. MISC PAGE
+local miscCard = createModuleCard("Performance", 50, MiscPage)
+addToggleElement(miscCard, "FPS / Ping Overlay", FPSPingOverlayEnabled, 24, function(v) FPSPingOverlayEnabled = v end)
+
+local socialCard = createModuleCard("Socials & Config", 135, MiscPage)
+
+local copyBtn = Instance.new("TextButton", socialCard)
+copyBtn.Size = UDim2.new(1, -20, 0, 28)
+copyBtn.Position = UDim2.new(0, 10, 0, 26)
+copyBtn.BackgroundColor3 = COLORS.Background
+copyBtn.Text = "📋 Copy Discord Link"
+copyBtn.Font = Enum.Font.GothamBold
+copyBtn.TextSize = 10
+copyBtn.TextColor3 = currentThemeColor
+Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 8)
+local copyStroke = Instance.new("UIStroke", copyBtn)
+copyStroke.Color = currentThemeColor; copyStroke.Thickness = 1.2
+table.insert(themeStrokes, copyStroke)
+table.insert(themeTexts, copyBtn)
+
+copyBtn.MouseButton1Click:Connect(function() 
+    pcall(function() setclipboard("https://discord.gg/XuUb9xmpqK") end)
+    copyBtn.Text = "✅ Discord Copied!"
+    task.delay(1.5, function() copyBtn.Text = "📋 Copy Discord Link" end)
+end)
+
+local saveBtn = Instance.new("TextButton", socialCard)
+saveBtn.Size = UDim2.new(1, -20, 0, 28)
+saveBtn.Position = UDim2.new(0, 10, 0, 60)
+saveBtn.BackgroundColor3 = currentThemeColor
+saveBtn.Text = "💾 Save Config"
+saveBtn.Font = Enum.Font.GothamBold
+saveBtn.TextSize = 10
+saveBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 8)
+table.insert(themeFrames, saveBtn)
+
+saveBtn.MouseButton1Click:Connect(function() 
+    pcall(SaveConfig)
+    saveBtn.Text = "✅ Config Saved!"
+    task.delay(1.5, function() saveBtn.Text = "💾 Save Config" end)
+end)
+
+local resetBtn = Instance.new("TextButton", socialCard)
+resetBtn.Size = UDim2.new(1, -20, 0, 28)
+resetBtn.Position = UDim2.new(0, 10, 0, 94)
+resetBtn.BackgroundColor3 = COLORS.Background
+resetBtn.Text = "🔄 Reset Config"
+resetBtn.Font = Enum.Font.GothamBold
+resetBtn.TextSize = 10
+resetBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+Instance.new("UICorner", resetBtn).CornerRadius = UDim.new(0, 8)
+local resetStroke = Instance.new("UIStroke", resetBtn)
+resetStroke.Color = Color3.fromRGB(255, 80, 80); resetStroke.Thickness = 1.2
+
+resetBtn.MouseButton1Click:Connect(function() 
+    pcall(function() if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end end)
+    
+    ESPMaster = false; ESPName = true; ESPHealth = true; ESPDist = true; ESPTracers = false
+    FastAttackEnabled = false; WalkSpeedEnabled = false; WalkSpeedValue = 16
+    DashEnabled = false; DashLengthDist = 1; NoclipEnabled = false; WalkOnWaterEnabled = false
+    SmartAutoV4Enabled = false; SuperJumpEnabled = false; SuperJumpPower = 500
+    SanguineAutoEnabled = false; SoulGuitarJumpEnabled = false
+    _G.G_SilentAimM1R = false; _G.G_SilentAimSkill = false; _G.G_SilentAimTargetPlayers = false; _G.G_SilentAimTargetMobs = false
+    _G.G_DragonGunM1 = false; _G.G_SilentAimShowFOV = false; _G.G_SilentAimShowLine = false
+    AimlockPlayerEnabled = false; AimlockNpcEnabled = false; PlayerWidgetActive = false; NpcWidgetActive = false
+    SoruInfinitoEnabled = false; SoruAimbotEnabled = false; PortalSoruEnabled = false; PortalSanguineCEnabled = false
+    FakeKorbloxEnabled = false; FakeHeadlessEnabled = false; FPSPingOverlayEnabled = false
+
+    for _, updateFn in ipairs(ToggleRegistry) do pcall(function() updateFn(false) end) end
+    ClearESP(); ClearTracers()
+    updateDragonBtnVisual()
+
+    resetBtn.Text = "✅ Config Reset (Defaults)!"
+    task.delay(1.5, function() resetBtn.Text = "🔄 Reset Config" end)
+end)
+
+-- TRADUCCIONES BILINGÜES
+local LANG = {
+    EN = {
+        playerStats = "Player Stats", aimbot = "Aimbot", combatMain = "Combat Main", glitches = "Glitches",
+        camLock = "Cam Lock", soruEngine = "Soru Engine", appearance = "Appearance",
+        aimBlacklist = "Aim Blacklist", sacredVFX = "Sacred VFX", misc = "Misc",
+        espPlayers = "ESP Players", fpsPing = "FPS / Ping Overlay", language = "Language",
+        performance = "Performance", fakeBody = "Fake Body", auraVfx = "Aura VFX",
+        blacklistTitle = "Silent Aim Blacklist", playerProfile = "Player Profile",
+        saveConfig = "Save Config", resetConfig = "Reset Config", copyDiscord = "Copy Discord Link",
+        vfxWarning = "⚠️ May cause lag on low-end mobile devices",
+        activateVfx = "🚀 Activate Sacred VFX",
+        aimbotSettings = "Aimbot Settings", skillAimbot = "Skill Aimbot", m1Aimbot = "M1 Aimbot",
+        targetPlayers = "Target Players", targetNPCs = "Target NPCs", teamCheckAuto = "Team Check (Auto)",
+        showLockLine = "Show Lock Line", dragonGunM1 = "Dragon Gun M1",
+        dragonBanWarn = "⚠ Ban Risk / Riesgo de Ban",
+        showFOVCircle = "Show FOV Circle", fovRadius = "FOV Radius:",
+        fovRange = "FOV Range (Screen Center)",
+        fastAttack = "Fast Attack", movementPhysics = "Movement & Physics",
+        walkSpeed = "Walk Speed", dashDistance = "Dash Distance", noclip = "Noclip",
+        walkOnWater = "Walk on Water", raceV4 = "Race V4", smartAutoV4 = "Smart Auto V4",
+        sanguineZManual = "Sanguine Z Manual", runSangZ = "▶ Run Sanguine Z Lag",
+        superJump = "Super Jump", jumpPower = "Jump Power:",
+        sangAutoZDrop = "Sanguine Auto Z Drop", autoZDrop = "Auto Z Drop", cooldown = "Cooldown:",
+        soulGuitarJump = "Soul Guitar Jump", dashLength = "Dash Length:",
+        cameraAimlock = "Camera Aimlock", lockPlayers = "Lock Players", lockNPCs = "Lock NPCs",
+        masterESP = "Master ESP", showNames = "Show Names", showHealth = "Show Health",
+        showDistance = "Show Distance", espTracers = "ESP Tracers",
+        infSoru = "Infinite Soru", portalSoruCombo = "Portal Soru Combo",
+        portalSangC = "Portal Sanguine C Combo",
+        fakeKorblox = "Fake Korblox", fakeHeadless = "Fake Headless",
+        refreshPlayerList = "⟳ Refresh Player List",
+        socials = "Socials & Config"
+    },
+    ES = {
+        playerStats = "Estadísticas", aimbot = "Aimbot", combatMain = "Combate", glitches = "Glitches",
+        camLock = "Cámara Lock", soruEngine = "Motor Soru", appearance = "Apariencia",
+        aimBlacklist = "Lista Negra", sacredVFX = "Sacred VFX", misc = "Varios",
+        espPlayers = "ESP Jugadores", fpsPing = "FPS / Ping", language = "Idioma",
+        performance = "Rendimiento", fakeBody = "Cuerpo Falso", auraVfx = "Aura VFX",
+        blacklistTitle = "Lista Negra Silent Aim", playerProfile = "Perfil del Jugador",
+        saveConfig = "Guardar Config", resetConfig = "Resetear Config", copyDiscord = "Copiar Link Discord",
+        vfxWarning = "⚠️ Puede dar lag en celulares de baja gama",
+        activateVfx = "🚀 Activar Sacred VFX",
+        aimbotSettings = "Ajustes de Aimbot", skillAimbot = "Aimbot de Habilidades", m1Aimbot = "Aimbot M1",
+        targetPlayers = "Apuntar Jugadores", targetNPCs = "Apuntar NPCs", teamCheckAuto = "Chequeo Equipo (Auto)",
+        showLockLine = "Mostrar Línea Lock", dragonGunM1 = "Dragon Gun M1",
+        dragonBanWarn = "⚠ Riesgo de Ban / Ban Risk",
+        showFOVCircle = "Mostrar Círculo FOV", fovRadius = "Radio FOV:",
+        fovRange = "Rango FOV (Centro Pantalla)",
+        fastAttack = "Ataque Rápido", movementPhysics = "Movimiento y Físicas",
+        walkSpeed = "Velocidad", dashDistance = "Distancia Dash", noclip = "Noclip",
+        walkOnWater = "Caminar en Agua", raceV4 = "Raza V4", smartAutoV4 = "Auto V4 Inteligente",
+        sanguineZManual = "Sanguine Z Manual", runSangZ = "▶ Ejecutar Sanguine Z Lag",
+        superJump = "Super Salto", jumpPower = "Poder de Salto:",
+        sangAutoZDrop = "Sanguine Auto Z Drop", autoZDrop = "Auto Z Drop", cooldown = "Enfriamiento:",
+        soulGuitarJump = "Salto Soul Guitar", dashLength = "Largo de Dash:",
+        cameraAimlock = "Cámara Aimlock", lockPlayers = "Bloquear Jugadores", lockNPCs = "Bloquear NPCs",
+        masterESP = "ESP Principal", showNames = "Mostrar Nombres", showHealth = "Mostrar Vida",
+        showDistance = "Mostrar Distancia", espTracers = "ESP Trazadores",
+        infSoru = "Soru Infinito", portalSoruCombo = "Combo Portal Soru",
+        portalSangC = "Combo Portal Sanguine C",
+        fakeKorblox = "Korblox Falso", fakeHeadless = "Headless Falso",
+        refreshPlayerList = "⟳ Actualizar Lista",
+        socials = "Sociales y Config"
+    }
+}
+local langCard = createModuleCard("Language / Idioma", 75, MiscPage)
+
+local function updateLanguageUI()
+    for _, desc in pairs(mainFrame:GetDescendants()) do
+        if desc:IsA("TextLabel") or desc:IsA("TextButton") then
+            local t = desc.Text
+            if currentLang == "ES" then
+                for k, v in pairs(LANG.EN) do if t:match(v) then desc.Text = t:gsub(v, LANG.ES[k]) end end
+            else
+                for k, v in pairs(LANG.ES) do if t:match(v) then desc.Text = t:gsub(v, LANG.EN[k]) end end
+            end
+        end
+    end
+end
+
+local langBtnEN = Instance.new("TextButton", langCard)
+langBtnEN.Size = UDim2.new(0, 55, 0, 18)
+langBtnEN.Position = UDim2.new(0, 10, 0, 28)
+langBtnEN.BackgroundColor3 = currentThemeColor
+langBtnEN.Text = "English"
+langBtnEN.Font = Enum.Font.GothamBold
+langBtnEN.TextSize = 8
+langBtnEN.TextColor3 = Color3.fromRGB(15, 10, 20)
+Instance.new("UICorner", langBtnEN).CornerRadius = UDim.new(0, 4)
+table.insert(themeFrames, langBtnEN)
+
+local langBtnES = Instance.new("TextButton", langCard)
+langBtnES.Size = UDim2.new(0, 55, 0, 18)
+langBtnES.Position = UDim2.new(0, 72, 0, 28)
+langBtnES.BackgroundColor3 = COLORS.ToggleOff
+langBtnES.Text = "Español"
+langBtnES.Font = Enum.Font.GothamBold
+langBtnES.TextSize = 8
+langBtnES.TextColor3 = COLORS.TextWhite
+Instance.new("UICorner", langBtnES).CornerRadius = UDim.new(0, 4)
+
+langBtnEN.MouseButton1Click:Connect(function()
+    currentLang = "EN"
+    langBtnEN.BackgroundColor3 = currentThemeColor
+    langBtnEN.TextColor3 = Color3.fromRGB(15, 10, 20)
+    langBtnES.BackgroundColor3 = COLORS.ToggleOff
+    langBtnES.TextColor3 = COLORS.TextWhite
+    updateLanguageUI()
+end)
+
+langBtnES.MouseButton1Click:Connect(function()
+    currentLang = "ES"
+    langBtnES.BackgroundColor3 = currentThemeColor
+    langBtnES.TextColor3 = Color3.fromRGB(15, 10, 20)
+    langBtnEN.BackgroundColor3 = COLORS.ToggleOff
+    langBtnEN.TextColor3 = COLORS.TextWhite
+    updateLanguageUI()
+end)
+
+-- THEME DROPDOWN SELECTOR
+local themeSelector = Instance.new("TextButton", mainFrame)
+themeSelector.Text = "Snow White  ▼"
+themeSelector.Font = Enum.Font.GothamBold
+themeSelector.TextSize = 8.5
+themeSelector.TextColor3 = currentThemeColor
+themeSelector.Size = UDim2.new(0, 110, 0, 20)
+themeSelector.Position = UDim2.new(1, -150, 0, 10)
+themeSelector.BackgroundColor3 = COLORS.PanelBG
+Instance.new("UICorner", themeSelector).CornerRadius = UDim.new(0, 5)
+table.insert(themeTexts, themeSelector)
+
+local dropdownHeight = 22 * 8 + 6
+local themeDropdown = Instance.new("Frame", themeSelector)
+themeDropdown.Size = UDim2.new(1, 0, 0, dropdownHeight)
+themeDropdown.Position = UDim2.new(0, 0, 1, 4)
+themeDropdown.BackgroundColor3 = COLORS.PanelBG
+themeDropdown.Visible = false
+Instance.new("UICorner", themeDropdown).CornerRadius = UDim.new(0, 5)
+Instance.new("UIListLayout", themeDropdown).Padding = UDim.new(0, 1)
+
+local function isColorLight(c3)
+    return (c3.R * 0.299 + c3.G * 0.587 + c3.B * 0.114) > 0.65
+end
+
+local function applyNewTheme(themeName)
+    currentThemeColor = THEMES[themeName]
+    themeSelector.Text = themeName .. "  ▼"
+    local isLight = isColorLight(currentThemeColor)
+
+    for _, s in ipairs(themeStrokes) do if s and s.Parent then s.Color = currentThemeColor end end
+    for _, t in ipairs(themeTexts) do if t and t.Parent then t.TextColor3 = currentThemeColor end end
+    for _, f in ipairs(themeFrames) do 
+        if f and f.Parent then 
+            f.BackgroundColor3 = currentThemeColor 
+            if f:IsA("TextButton") or f:IsA("TextLabel") then
+                f.TextColor3 = isLight and Color3.fromRGB(15, 10, 20) or Color3.fromRGB(255, 255, 255)
+            end
+        end 
+    end
+    for _, drop in ipairs(rainContainer:GetChildren()) do
+        if drop.Name == "RainDrop" then drop.BackgroundColor3 = currentThemeColor end
+    end
+    for _, child in ipairs(themeDropdown:GetChildren()) do
+        if child:IsA("TextButton") and THEMES[child.Text] then child.TextColor3 = THEMES[child.Text] end
+    end
+    themeDropdown.Visible = false
+end
+
+for name, color in pairs(THEMES) do
+    local opt = Instance.new("TextButton", themeDropdown)
+    opt.Size = UDim2.new(1, 0, 0, 22)
+    opt.BackgroundTransparency = 1
+    opt.Text = name
+    opt.Font = Enum.Font.GothamSemibold
+    opt.TextSize = 8.5
+    opt.TextColor3 = color
+    opt.MouseButton1Click:Connect(function() applyNewTheme(name) end)
+end
+
+themeSelector.MouseButton1Click:Connect(function()
+    themeDropdown.Visible = not themeDropdown.Visible
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.F4 then
+        mainFrame.Visible = not mainFrame.Visible
+        openButton.Visible = not mainFrame.Visible
+    end
+end)
+
+-- NOW LOAD CONFIG AND UPDATE TOGGLE VISUALS PROPERLY
+pcall(function()
+    if isfile("SacredAHK_Config.json") then
+        local str = readfile("SacredAHK_Config.json")
+        local conf = HttpService:JSONDecode(str)
+        ApplyLoadedConfig(conf)
+    end
+end)
 
