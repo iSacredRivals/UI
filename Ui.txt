@@ -124,13 +124,15 @@ prevDashEnabled = false
 
 -- Tabla global de actualizadores de toggles visuales para sincronización completa
 UI_Toggle_Refreshes = {}
+ToggleRegistryMap = {}
 
 function SaveConfig()
     local conf = {
         ESPMaster = ESPMaster, ESPName = ESPName, ESPHealth = ESPHealth, ESPDist = ESPDist,
         ESPLevel = ESPLevel, ESPPvP = ESPPvP, ESPTracers = ESPTracers,
         FastAttack = FastAttackEnabled, WalkSpeed = WalkSpeedEnabled, WSpeedVal = WalkSpeedValue,
-        Dash = DashEnabled, DashDist = DashLengthDist, Noclip = NoclipEnabled, WalkOnWater = WalkOnWaterEnabled,
+        AntiStun = AntiStunEnabled, Dash = DashEnabled, DashDist = DashLengthDist,
+        Noclip = NoclipEnabled, WalkOnWater = WalkOnWaterEnabled,
         SmartV4 = SmartAutoV4Enabled, SuperJump = SuperJumpEnabled, SuperPower = SuperJumpPower,
         SanguineAuto = SanguineAutoEnabled, SanguineDrop = SanguineAutoDropDuration,
         SoulGuitar = SoulGuitarJumpEnabled, SoulDash = SoulGuitarDashLength,
@@ -156,49 +158,51 @@ function LoadConfig()
             local conf = HttpService:JSONDecode(str)
             if not conf then return end
 
-            if conf.ESPMaster ~= nil then ESPMaster = conf.ESPMaster end
-            if conf.ESPName ~= nil then ESPName = conf.ESPName end
-            if conf.ESPHealth ~= nil then ESPHealth = conf.ESPHealth end
-            if conf.ESPDist ~= nil then ESPDist = conf.ESPDist end
-            if conf.ESPLevel ~= nil then ESPLevel = conf.ESPLevel end
-            if conf.ESPPvP ~= nil then ESPPvP = conf.ESPPvP end
-            if conf.ESPTracers ~= nil then ESPTracers = conf.ESPTracers end
-            
-            if conf.FastAttack ~= nil then FastAttackEnabled = conf.FastAttack end
-            if conf.WalkSpeed ~= nil then WalkSpeedEnabled = conf.WalkSpeed end
+            local mapping = {
+                ["Master ESP"] = conf.ESPMaster,
+                ["Show Names"] = conf.ESPName,
+                ["Show Health"] = conf.ESPHealth,
+                ["Show Distance"] = conf.ESPDist,
+                ["Show Level"] = conf.ESPLevel,
+                ["Show PvP Status"] = conf.ESPPvP,
+                ["ESP Tracers"] = conf.ESPTracers,
+                ["Fast Attack"] = conf.FastAttack,
+                ["Anti Stun"] = conf.AntiStun,
+                ["Walk Speed"] = conf.WalkSpeed,
+                ["Dash Distance"] = conf.Dash,
+                ["Noclip"] = conf.Noclip,
+                ["Walk on Water"] = conf.WalkOnWater,
+                ["Smart Auto V4"] = conf.SmartV4,
+                ["Aimbot Skills"] = conf.SkillAimbot,
+                ["Aimbot M1 (Dragon Gun) ⚠️ BAN RISK"] = conf.DragonM1,
+                ["Target Players"] = conf.TargetPlayers,
+                ["Target NPCs"] = conf.TargetMobs,
+                ["Team Check"] = conf.TeamCheck,
+                ["Show FOV Circle"] = conf.ShowFOV,
+                ["Show Lock Line"] = conf.ShowLine,
+                ["Infinite Soru"] = conf.InfSoru,
+                ["Soru Aimbot (TP)"] = conf.SoruAimbot,
+                ["Portal Soru Combo"] = conf.PortalSoru,
+                ["Fake Korblox"] = conf.FakeKorblox,
+                ["Fake Headless"] = conf.FakeHeadless,
+                ["FPS / Ping Overlay"] = conf.FPSPing
+            }
+
+            for name, val in pairs(mapping) do
+                if val ~= nil and ToggleRegistryMap[name] then
+                    pcall(function() ToggleRegistryMap[name](val) end)
+                end
+            end
+
             if conf.WSpeedVal ~= nil then WalkSpeedValue = conf.WSpeedVal end
-            if conf.Dash ~= nil then DashEnabled = conf.Dash end
             if conf.DashDist ~= nil then DashLengthDist = conf.DashDist end
-            if conf.Noclip ~= nil then NoclipEnabled = conf.Noclip end
-            if conf.WalkOnWater ~= nil then WalkOnWaterEnabled = conf.WalkOnWater end
-            if conf.SmartV4 ~= nil then SmartAutoV4Enabled = conf.SmartV4 end
-            if conf.SuperJump ~= nil then SuperJumpEnabled = conf.SuperJump end
             if conf.SuperPower ~= nil then SuperJumpPower = conf.SuperPower end
-            if conf.SanguineAuto ~= nil then SanguineAutoEnabled = conf.SanguineAuto end
             if conf.SanguineDrop ~= nil then SanguineAutoDropDuration = conf.SanguineDrop end
-            if conf.SoulGuitar ~= nil then SoulGuitarJumpEnabled = conf.SoulGuitar end
             if conf.SoulDash ~= nil then SoulGuitarDashLength = conf.SoulDash end
-
-            if conf.TargetPlayers ~= nil then _G.G_SilentAimTargetPlayers = conf.TargetPlayers end
-            if conf.TargetMobs ~= nil then _G.G_SilentAimTargetMobs = conf.TargetMobs end
-            if conf.SkillAimbot ~= nil then _G.G_SilentAimSkill = conf.SkillAimbot end
-            if conf.DragonM1 ~= nil then _G.G_DragonGunM1 = conf.DragonM1 end
-            if conf.TeamCheck ~= nil then _G.G_SilentAimTeamCheck = conf.TeamCheck end
-            if conf.ShowFOV ~= nil then _G.G_SilentAimShowFOV = conf.ShowFOV end
-            if conf.ShowLine ~= nil then _G.G_SilentAimShowLine = conf.ShowLine end
             if conf.FOVRadius ~= nil then _G.G_SilentAimFOV = conf.FOVRadius end
-
-            if conf.AimlockPlayers ~= nil then AimlockPlayerEnabled = conf.AimlockPlayers end
-            if conf.AimlockNPCs ~= nil then AimlockNpcEnabled = conf.AimlockNPCs end
-            if conf.InfSoru ~= nil then SoruInfinitoEnabled = conf.InfSoru end
-            if conf.SoruAimbot ~= nil then SoruAimbotEnabled = conf.SoruAimbot end
-            if conf.PortalSoru ~= nil then PortalSoruEnabled = conf.PortalSoru end
-            if conf.FakeKorblox ~= nil then FakeKorbloxEnabled = conf.FakeKorblox end
-            if conf.FakeHeadless ~= nil then FakeHeadlessEnabled = conf.FakeHeadless end
-            if conf.FPSPing ~= nil then FPSPingOverlayEnabled = conf.FPSPing end
             if conf.Language ~= nil then currentLang = conf.Language end
 
-            print("✅ Sacred AHK Config Loaded & Applied!")
+            print("✅ Sacred AHK Config Loaded & Applied Successfully!")
         end
     end)
 end
@@ -328,7 +332,7 @@ local function UpdateDragonButton()
 end
 
 -- ============================================================
--- ANTI STUN LOGIC (ROBUSTO Y CONSTANTE)
+-- ANTI STUN LOGIC (INSTANTÁNEO Y CONSTANTE)
 -- ============================================================
 AntiStunEnabled = false
 
@@ -342,18 +346,24 @@ RunService.Stepped:Connect(function()
                 if hum.Sit then hum.Sit = false end
                 hum:SetStateEnabled(Enum.HumanoidStateType.Stanced, true)
                 hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
             end
+
+            -- Remover físicas restrictivas e impulsos de Stun
             for _, child in ipairs(char:GetChildren()) do
-                if child:IsA("BodyVelocity") or child:IsA("BodyGyro") then
+                if child:IsA("BodyVelocity") or child:IsA("BodyGyro") or child:IsA("BodyPosition") or child:IsA("LinearVelocity") then
                     if child.Name ~= "HumanoidRootPart" and not child:IsA("Motor6D") then child:Destroy() end
-                elseif child.Name == "Stun" or child.Name == "Busy" or child.Name == "Disabled" or child.Name == "Freeze" or child.Name == "Knockback" or child.Name == "NoMove" then
+                elseif child.Name == "Stun" or child.Name == "Busy" or child.Name == "Disabled" or child.Name == "Freeze" or child.Name == "Knockback" or child.Name == "NoMove" or child.Name == "CameraShaker" then
                     child:Destroy()
                 end
             end
+
+            -- Resetear Atributos del personaje
             char:SetAttribute("Stun", 0)
             char:SetAttribute("Busy", false)
             char:SetAttribute("NoMove", false)
             char:SetAttribute("Disabled", false)
+            char:SetAttribute("Stunned", false)
         end)
     end
 end)
@@ -1059,6 +1069,23 @@ function UpdateESP()
     if not ESPMaster then return end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player and p.Character then CreateESP(p.Character) end
+    end
+end
+
+-- Auto-escuchar nuevos jugadores o respawns para ESP instantáneo
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        if ESPMaster then CreateESP(char) end
+    end)
+end)
+
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= player then
+        p.CharacterAdded:Connect(function(char)
+            task.wait(0.5)
+            if ESPMaster then CreateESP(char) end
+        end)
     end
 end
 
@@ -2083,20 +2110,20 @@ mainTitle.BackgroundTransparency = 1
 mainTitle.TextXAlignment = Enum.TextXAlignment.Left
 table.insert(themeTexts, mainTitle)
 
--- TikTok Button Ubicado limpiamente en la cabecera (Lejos de los botones - y X)
+-- TikTok Button Ubicado en la barra superior con fondo oscuro y texto blanco de alto contraste
 local tiktokBtn = Instance.new("TextButton", mainFrame)
-tiktokBtn.Size = UDim2.new(0, 130, 0, 20)
-tiktokBtn.Position = UDim2.new(0, 120, 0, 10)
-tiktokBtn.BackgroundColor3 = COLORS.PanelBG
+tiktokBtn.Size = UDim2.new(0, 135, 0, 22)
+tiktokBtn.Position = UDim2.new(0.5, -67, 0, 9)
+tiktokBtn.BackgroundColor3 = Color3.fromRGB(24, 18, 34)
 tiktokBtn.Text = "🎵 @rivalsxrodx"
 tiktokBtn.Font = Enum.Font.GothamBold
-tiktokBtn.TextSize = 9
+tiktokBtn.TextSize = 10
 tiktokBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 tiktokBtn.BorderSizePixel = 0
-Instance.new("UICorner", tiktokBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UICorner", tiktokBtn).CornerRadius = UDim.new(0, 6)
 local ttStroke = Instance.new("UIStroke", tiktokBtn)
 ttStroke.Color = currentThemeColor
-ttStroke.Thickness = 1.2
+ttStroke.Thickness = 1.4
 table.insert(themeStrokes, ttStroke)
 
 tiktokBtn.MouseButton1Click:Connect(function()
@@ -2302,7 +2329,8 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
         updateWidgetsVisuals()
     end
 
-    table.insert(ToggleRegistry, function(val) setExternalState(val) end)
+    table.insert(UI_Toggle_Refreshes, setExternalState)
+    ToggleRegistryMap[labelText] = setExternalState
 
     clickBtn.MouseButton1Click:Connect(function()
         state = not state
@@ -2310,6 +2338,7 @@ local function addToggleElement(parent, labelText, defaultState, yPos, callback)
         callback(state)
         updateWidgetsVisuals()
         if state then totalExecutions = totalExecutions + 1 end
+        pcall(SaveConfig)
     end)
     
     return setExternalState, clickBtn
@@ -2635,19 +2664,35 @@ local c2 = createModuleCard("Fast Attack & Combat", 75, CombatPage)
 addToggleElement(c2, "Fast Attack", FastAttackEnabled, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end)
 addToggleElement(c2, "Anti Stun", AntiStunEnabled, 48, function(v) AntiStunEnabled = v end)
 
-local c3 = createModuleCard("Movement", 120, CombatPage)
+local c3 = createModuleCard("Movement", 220, CombatPage)
 addToggleElement(c3, "Walk Speed", WalkSpeedEnabled, 24, function(v) WalkSpeedEnabled = v end)
 addStepper(c3, "Speed:", 48, 16, 500, 50, function() return WalkSpeedValue end, function(v) WalkSpeedValue = v end, "")
 
+-- Movement Boost Loop (Bypass Blox Fruits Speed Clamp)
 RunService.Stepped:Connect(function()
     if WalkSpeedEnabled and player.Character then
         local hum = player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = WalkSpeedValue end
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            hum.WalkSpeed = WalkSpeedValue
+            if hum.MoveDirection.Magnitude > 0 and WalkSpeedValue > 20 then
+                hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (WalkSpeedValue / 100))
+            end
+        end
     end
 end)
 
-addToggleElement(c3, "Noclip", NoclipEnabled, 74, function(v) SetNoclip(v) end)
-addToggleElement(c3, "Walk on Water", WalkOnWaterEnabled, 96, function(v) WalkOnWaterEnabled = v end)
+local setDashToggleState = addToggleElement(c3, "Dash Distance", DashEnabled, 88, function(v) 
+    DashEnabled = v 
+    if v then startDashLoop() else stopDashLoop() end 
+end)
+local dashDistLabel = addStepper(c3, "Distance:", 116, 1, 300, 10, function() return DashLengthDist end, function(v) 
+    DashLengthDist = v
+    if DashEnabled then applyDashInstantly() end
+end, "")
+
+addToggleElement(c3, "Noclip", NoclipEnabled, 152, function(v) SetNoclip(v) end)
+addToggleElement(c3, "Walk on Water", WalkOnWaterEnabled, 176, function(v) WalkOnWaterEnabled = v end)
 
 -- Smart Auto V4 Fix
 local c4 = createModuleCard("Auto V4", 50, CombatPage)
@@ -2802,11 +2847,24 @@ local setSoulGuitarState, soulGuitarBtn = addToggleElement(soulGuitarCard, "Soul
     SoulGuitarJumpEnabled = v
     SoulGuitarWidgetVisible = v
     if v then
+        if DashLengthDist ~= SoulGuitarDashLength then
+            prevDashLength = DashLengthDist
+        end
         DashLengthDist = SoulGuitarDashLength
-        DashEnabled = true
+        if not DashEnabled then
+            prevDashEnabled = false
+            setDashToggleState(true) 
+        else
+            prevDashEnabled = true
+        end
     else
-        DashEnabled = false
+        DashLengthDist = prevDashLength
+        if not prevDashEnabled and DashEnabled then
+            setDashToggleState(false)
+        end
     end
+    if dashDistLabel then dashDistLabel.Text = tostring(DashLengthDist) end
+    if DashEnabled then applyDashInstantly() end
     updateWidgetsVisuals()
 end)
 
@@ -2814,6 +2872,8 @@ addStepper(soulGuitarCard, "Dash Speed:", 52, 1, 300, 10, function() return Soul
     SoulGuitarDashLength = v
     if SoulGuitarJumpEnabled then
         DashLengthDist = v
+        if dashDistLabel then dashDistLabel.Text = tostring(DashLengthDist) end
+        if DashEnabled then applyDashInstantly() end
     end
 end, "")
 
@@ -2826,13 +2886,17 @@ if SoulGuitarWidget then
             soulGuitarBtn.BackgroundColor3 = currentThemeColor
             soulGuitarBtn.Text = "ON"
             totalExecutions = totalExecutions + 1
+            if DashLengthDist ~= SoulGuitarDashLength then prevDashLength = DashLengthDist end
             DashLengthDist = SoulGuitarDashLength
-            DashEnabled = true
+            if not DashEnabled then prevDashEnabled = false; setDashToggleState(true) else prevDashEnabled = true end
         else
             soulGuitarBtn.BackgroundColor3 = COLORS.ToggleOff
             soulGuitarBtn.Text = "OFF"
-            DashEnabled = false
+            DashLengthDist = prevDashLength
+            if not prevDashEnabled and DashEnabled then setDashToggleState(false) end
         end
+        if dashDistLabel then dashDistLabel.Text = tostring(DashLengthDist) end
+        if DashEnabled then applyDashInstantly() end
         updateWidgetsVisuals()
     end)
 end
@@ -3324,7 +3388,12 @@ resetStroke.Color = Color3.fromRGB(255, 80, 80)
 resetStroke.Thickness = 1.2
 
 resetBtn.MouseButton1Click:Connect(function() 
-    pcall(function() if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end end)
+    pcall(function() 
+        if isfile and isfile("SacredAHK_Config.json") then delfile("SacredAHK_Config.json") end 
+        if isfile and isfile("SacredAHK_Bounty.json") then delfile("SacredAHK_Bounty.json") end
+    end)
+
+    -- Restablecer todas las variables internas a defaults
     ESPMaster = false; ESPName = true; ESPHealth = true; ESPDist = true; ESPTracers = false
     ESPLevel = true; ESPPvP = true
     FastAttackEnabled = false; WalkSpeedEnabled = false; WalkSpeedValue = 16
@@ -3338,8 +3407,17 @@ resetBtn.MouseButton1Click:Connect(function()
     AimlockPlayerEnabled = false; AimlockNpcEnabled = false
     SoruInfinitoEnabled = false; SoruAimbotEnabled = false; PortalSoruEnabled = false
     FakeKorbloxEnabled = false; FakeHeadlessEnabled = false; FPSPingOverlayEnabled = false
+    AntiStunEnabled = false
+
+    -- Apagar todos los toggles visuales en UI de inmediato
+    for _, fn in ipairs(UI_Toggle_Refreshes) do 
+        pcall(function() fn(false) end) 
+    end
     
-    for _, fn in ipairs(UI_Toggle_Refreshes) do pcall(function() fn(false) end) end
+    ClearESP()
+    ClearTracers()
+    updateWidgetsVisuals()
+
     resetBtn.Text = "✅ Reset Done!"
     task.delay(1.5, function() resetBtn.Text = "🔄 Reset Config" end)
 end)
