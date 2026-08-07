@@ -1,9 +1,10 @@
 -- ============================================================
 -- SACRED AHK VERSION 12 | LOCAL DEV STANDALONE
 -- ============================================================
--- [KEY SYSTEM DESACTIVADO / BYPASSED]: Este script es 100% independiente.
--- No requiere Key, no requiere conexion a GitHub ni ningun cargador externo.
--- Ejecutalo directamente en tu ejecutor de Roblox (Solara, Wave, Delta, Synapse, Xeno, etc).
+-- OPEN SOURCE CODE OPEN SOURCE CODE 
+-- OPEN SOURCE CODE OPEN SOURCE CODE 
+-- OPEN SOURCE CODE OPEN SOURCE CODE 
+-- OPEN SOURCE CODE OPEN SOURCE CODE 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
