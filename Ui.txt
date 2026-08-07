@@ -1,10 +1,13 @@
 -- ============================================================
 -- SACRED AHK VERSION 12 | LOCAL DEV STANDALONE
 -- ============================================================
--- OPEN SOURCE CODE OPEN SOURCE CODE 
--- OPEN SOURCE CODE OPEN SOURCE CODE 
--- OPEN SOURCE CODE OPEN SOURCE CODE 
--- OPEN SOURCE CODE OPEN SOURCE CODE 
+
+-- OPEN SOURCE SCRIPT 
+
+-- OPEN SOURCE SCRIPT
+
+-- OPEN SOURCE SCRIPT 
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -28,6 +31,21 @@ pcall(function()
         playerGui = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui", 5)
     end
 end)
+
+function _decodeUrl(b)
+    local s = {}
+    for i = 1, #b do
+        local a, k = b[i], 0x5A
+        local r, p = 0, 1
+        while a > 0 or k > 0 do
+            local ra, rk = a % 2, k % 2
+            if ra ~= rk then r = r + p end
+            a, k, p = (a - ra) / 2, (k - rk) / 2, p * 2
+        end
+        s[i] = string.char(r)
+    end
+    return table.concat(s)
+end
 
 -- Tracking Variables
 scriptStartTime = os.time()
