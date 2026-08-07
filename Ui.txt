@@ -2668,19 +2668,28 @@ end
 
 local openButton = Instance.new("TextButton")
 openButton.Size = UDim2.new(0, 42, 0, 42)
-openButton.Position = UDim2.new(0, 15, 0, 15) -- Arriba a la izquierda
-openButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- 100% Negro puro sólido
-openButton.BackgroundTransparency = 0 -- Totalmente opaco y sólido
-openButton.Text = "AHK"
-openButton.Font = Enum.Font.GothamBlack
-openButton.TextSize = 13.5
-openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-openButton.TextStrokeTransparency = 0 -- Borde negro grueso denso
-openButton.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+openButton.Position = UDim2.new(0, 15, 0, 15)
+openButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+openButton.BackgroundTransparency = 0
+openButton.Text = ""
 openButton.Visible = false
 openButton.Active = true
 openButton.Draggable = true
 openButton.Parent = toggleIconGui
+
+-- IMAGEN DE FONDO DEL TOGGLE
+local toggleBG = Instance.new("ImageLabel")
+toggleBG.Name = "ToggleBackground"
+toggleBG.Image = "rbxassetid://77588509473758"
+toggleBG.Size = UDim2.new(1, 0, 1, 0)
+toggleBG.Position = UDim2.new(0, 0, 0, 0)
+toggleBG.BackgroundTransparency = 1
+toggleBG.ZIndex = 1 
+toggleBG.Parent = openButton
+
+-- BORDES REDONDEADOS PARA LA IMAGEN (Matchea con el botón)
+Instance.new("UICorner", toggleBG).CornerRadius = UDim.new(0, 8)
+
 Instance.new("UICorner", openButton).CornerRadius = UDim.new(0, 8)
 local openStroke = Instance.new("UIStroke", openButton)
 openStroke.Thickness = 1.8
