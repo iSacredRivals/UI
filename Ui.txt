@@ -1,5 +1,5 @@
 -- ============================================================
--- SACRED AHK VERSION 12 | LOCAL DEV STANDALONE
+-- SACRED AHK VERSION 12.5 | LOCAL DEV STANDALONE
 -- ============================================================
 
 -- OPEN SOURCE SCRIPT 
@@ -121,6 +121,8 @@ SanguineWidgetVisible = false
 SanguineAutoConnection = nil
 SanguineAutoDropDuration = 2.0
 SanguineAutoCooldown = false
+SanguineNoCDEnabled = false
+noCDCharConnection = nil
 SoulGuitarJumpEnabled = false
 SoulGuitarWidgetVisible = false
 SoulGuitarDashLength = 121 
@@ -181,6 +183,8 @@ function SaveConfig()
         SanguineManual = SanguineManualEnabled,
         SanguineAuto = SanguineAutoEnabled,
         SanguineDrop = SanguineAutoDropDuration,
+        SanguineNoCD = SanguineNoCDEnabled,
+        AntiStunHitbox = AntiStunHitboxEnabled,
         SuperJump = SuperJumpEnabled,
         SuperPower = SuperJumpPower,
         SoulGuitar = SoulGuitarJumpEnabled,
@@ -228,6 +232,21 @@ function SaveConfig()
         MacroKey1 = MacroKey1,
         MacroSlot2 = MacroSlot2,
         MacroKey2 = MacroKey2,
+        MacroSlot3 = MacroSlot3,
+        MacroKey3 = MacroKey3,
+        MacroSlot4 = MacroSlot4,
+        MacroKey4 = MacroKey4,
+        MacroSlot5 = MacroSlot5,
+        MacroKey5 = MacroKey5,
+        MacroSlot6 = MacroSlot6,
+        MacroKey6 = MacroKey6,
+        MacroDelay1 = MacroDelay1,
+        MacroDelay2 = MacroDelay2,
+        MacroDelay3 = MacroDelay3,
+        MacroDelay4 = MacroDelay4,
+        MacroDelay5 = MacroDelay5,
+        MacroDelay6 = MacroDelay6,
+        AutoV4 = AutoV4Enabled,
         ThemeName = currentThemeName,
         Language = currentLang
     }
@@ -272,6 +291,8 @@ function LoadConfig()
             if conf.DashDist ~= nil then DashLengthDist = conf.DashDist end
             if conf.SuperPower ~= nil then SuperJumpPower = conf.SuperPower end
             if conf.SanguineDrop ~= nil then SanguineAutoDropDuration = conf.SanguineDrop end
+            if conf.SanguineNoCD ~= nil then SanguineNoCDEnabled = conf.SanguineNoCD end
+            if conf.AntiStunHitbox ~= nil then AntiStunHitboxEnabled = conf.AntiStunHitbox end
             if conf.SoulDash ~= nil then SoulGuitarDashLength = conf.SoulDash end
             if conf.FOVRadius ~= nil then 
                 _G.G_SilentAimFOV = conf.FOVRadius 
@@ -299,6 +320,31 @@ function LoadConfig()
             if FOVCircle then FOVCircle.Visible = (_G.G_SilentAimShowFOV == true) end
             if conf.ThemeName and applyNewTheme then applyNewTheme(conf.ThemeName) end
             if updateWidgetsVisuals then updateWidgetsVisuals() end
+
+            if conf.MacroBeta ~= nil then MacroEnabled = conf.MacroBeta end
+            if conf.MacroMode ~= nil then MacroMode = conf.MacroMode end
+            if conf.MacroSlot1 ~= nil then MacroSlot1 = conf.MacroSlot1 end
+            if conf.MacroKey1 ~= nil then MacroKey1 = conf.MacroKey1 end
+            if conf.MacroSlot2 ~= nil then MacroSlot2 = conf.MacroSlot2 end
+            if conf.MacroKey2 ~= nil then MacroKey2 = conf.MacroKey2 end
+            if conf.MacroSlot3 ~= nil then MacroSlot3 = conf.MacroSlot3 end
+            if conf.MacroKey3 ~= nil then MacroKey3 = conf.MacroKey3 end
+            if conf.MacroSlot4 ~= nil then MacroSlot4 = conf.MacroSlot4 end
+            if conf.MacroKey4 ~= nil then MacroKey4 = conf.MacroKey4 end
+            if conf.MacroSlot5 ~= nil then MacroSlot5 = conf.MacroSlot5 end
+            if conf.MacroKey5 ~= nil then MacroKey5 = conf.MacroKey5 end
+            if conf.MacroSlot6 ~= nil then MacroSlot6 = conf.MacroSlot6 end
+            if conf.MacroKey6 ~= nil then MacroKey6 = conf.MacroKey6 end
+            if conf.MacroDelay1 ~= nil then MacroDelay1 = conf.MacroDelay1 end
+            if conf.MacroDelay2 ~= nil then MacroDelay2 = conf.MacroDelay2 end
+            if conf.MacroDelay3 ~= nil then MacroDelay3 = conf.MacroDelay3 end
+            if conf.MacroDelay4 ~= nil then MacroDelay4 = conf.MacroDelay4 end
+            if conf.MacroDelay5 ~= nil then MacroDelay5 = conf.MacroDelay5 end
+            if conf.MacroDelay6 ~= nil then MacroDelay6 = conf.MacroDelay6 end
+            if conf.AutoV4 ~= nil then 
+                AutoV4Enabled = conf.AutoV4 
+                if AutoV4Enabled then startAutoV4Loop() end
+            end
 
             if conf.Language ~= nil then 
                 currentLang = conf.Language 
@@ -454,9 +500,154 @@ function UpdateDragonButton()
     -- Sincronización directa con el toggle de la UI sin botón flotante externo
 end
 
+
+
+if player:FindFirstChild("Backpack") then
+    player.Backpack.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            task.wait(0.1)
+            applyCustomFruitIcon()
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(1.5)
+        applyCustomFruitIcon()
+    end
+end)
+
 -- ============================================================
--- ANTI STUN COMPLETAMENTE REMOVIDO A PETICIÓN DEL USUARIO
+-- AUTO RACE V4 ENGINE
 -- ============================================================
+AutoV4Enabled = false
+local autoV4Thread = nil
+
+function startAutoV4Loop()
+    if autoV4Thread then return end
+    autoV4Thread = task.spawn(function()
+        while AutoV4Enabled do
+            task.wait(0.5)
+            pcall(function()
+                local char = player.Character
+                if not char then return end
+                local raceEnergy = char:GetAttribute("RaceEnergy")
+                if raceEnergy and raceEnergy >= 100 then
+                    local awk = player.Backpack:FindFirstChild("Awakening") or char:FindFirstChild("Awakening")
+                    if awk and awk:FindFirstChild("RemoteFunction") then
+                        awk.RemoteFunction:InvokeServer(true)
+                    else
+                        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+                        if remotes and remotes:FindFirstChild("CommF_") then
+                            remotes.CommF_:InvokeServer("Awakening", true)
+                        end
+                    end
+                end
+            end)
+        end
+        autoV4Thread = nil
+    end)
+end
+
+function stopAutoV4Loop()
+    AutoV4Enabled = false
+    autoV4Thread = nil
+end
+AntiStunHitboxEnabled = false
+antiStunHeartbeatConn = nil
+antiStunInputConn = nil
+antiStunCharConn = nil
+
+function enableAntiStunHitbox()
+    AntiStunHitboxEnabled = true
+    
+    if antiStunHeartbeatConn then antiStunHeartbeatConn:Disconnect() end
+    antiStunHeartbeatConn = RunService.Heartbeat:Connect(function()
+        if not AntiStunHitboxEnabled then return end
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            char:SetAttribute("AllCooldown", 0)
+            char:SetAttribute("FlashstepCooldown", 1)
+            char:SetAttribute("UsingSkill", false)
+            char:SetAttribute("isUsingSkill", false)
+            char:SetAttribute("Busy", false)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if hum and hum.WalkSpeed < 16 then hum.WalkSpeed = 16 end
+            if root then
+                for _, v in ipairs(root:GetChildren()) do
+                    if v:IsA("BodyVelocity") or v:IsA("BodyPosition") then
+                        v:Destroy()
+                    end
+                end
+            end
+            local pgui = player:FindFirstChild("PlayerGui")
+            if pgui and pgui:FindFirstChild("Main") then
+                local skills = pgui.Main:FindFirstChild("Skills")
+                if skills then
+                    local dbSkills = skills:FindFirstChild("Dark Blade")
+                    if dbSkills then
+                        for _, skillFrame in ipairs(dbSkills:GetChildren()) do
+                            local cd = skillFrame:FindFirstChild("Cooldown")
+                            if cd and cd:IsA("Frame") then
+                                cd.Size = UDim2.new(0, 0, 1, 0)
+                                cd.Visible = false
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+    
+    if antiStunInputConn then antiStunInputConn:Disconnect() end
+    antiStunInputConn = UserInputService.InputBegan:Connect(function(input, gp)
+        if not AntiStunHitboxEnabled or gp then return end
+        local char = player.Character
+        if not char then return end
+        local darkBlade = char:FindFirstChild("Dark Blade")
+        if not darkBlade or not darkBlade:FindFirstChild("RemoteEvent") then return end
+        if input.KeyCode == Enum.KeyCode.Z then
+            darkBlade.RemoteEvent:FireServer("Z")
+        elseif input.KeyCode == Enum.KeyCode.X then
+            darkBlade.RemoteEvent:FireServer("X")
+        end
+    end)
+    
+    if antiStunCharConn then antiStunCharConn:Disconnect() end
+    antiStunCharConn = player.CharacterAdded:Connect(function(char)
+        if AntiStunHitboxEnabled then
+            task.wait(1)
+            pcall(function()
+                char:SetAttribute("AllCooldown", 0)
+                char:SetAttribute("FlashstepCooldown", 1)
+            end)
+        end
+    end)
+end
+
+function disableAntiStunHitbox()
+    AntiStunHitboxEnabled = false
+    if antiStunHeartbeatConn then antiStunHeartbeatConn:Disconnect(); antiStunHeartbeatConn = nil end
+    if antiStunInputConn then antiStunInputConn:Disconnect(); antiStunInputConn = nil end
+    if antiStunCharConn then antiStunCharConn:Disconnect(); antiStunCharConn = nil end
+    pcall(function()
+        local char = player.Character
+        if char then
+            char:SetAttribute("AllCooldown", nil)
+            char:SetAttribute("FlashstepCooldown", nil)
+            char:SetAttribute("UsingSkill", nil)
+            char:SetAttribute("isUsingSkill", nil)
+            char:SetAttribute("Busy", nil)
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = 16
+            end
+        end
+    end)
+end
 RegisterHit, RegisterAttack = nil, nil
 FastAttackEnabled = false
 FastAttackRange = 2500
@@ -698,9 +889,21 @@ function executeSoulGuitarJump()
     local flatLook = Vector3.new(lookVector.X, 0, lookVector.Z)
     if flatLook.Magnitude > 0 then flatLook = flatLook.Unit end
     
-    hrp.AssemblyLinearVelocity = Vector3.new(flatLook.X * 150, 75, flatLook.Z * 150)
-    hrp.CFrame = hrp.CFrame + flatLook * 5
+    local soulAtt = Instance.new("Attachment")
+    soulAtt.Parent = hrp
+    local soulLV = Instance.new("LinearVelocity")
+    soulLV.MaxForce = math.huge
+    soulLV.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    soulLV.VectorVelocity = Vector3.new(flatLook.X * 180, 80, flatLook.Z * 180)
+    soulLV.Attachment0 = soulAtt
+    soulLV.Parent = hrp
+    
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    
+    task.delay(0.7, function()
+        if soulLV and soulLV.Parent then soulLV:Destroy() end
+        if soulAtt and soulAtt.Parent then soulAtt:Destroy() end
+    end)
 
     local tempNoAnimConn
     tempNoAnimConn = RunService.Stepped:Connect(function()
@@ -1366,6 +1569,45 @@ function dropFPS(duration)
     end)
 end
 
+function dropFPSManual()
+    if sanguineLagBusy then return end
+    sanguineLagBusy = true
+    local DROP_TO_FPS = 20
+    local LAG_DURATION = 0.43
+    local stop = tick() + LAG_DURATION
+    local interval = 1 / DROP_TO_FPS
+    local con
+    con = RunService.RenderStepped:Connect(function()
+        if tick() > stop then
+            if con then con:Disconnect() end
+            return
+        end
+        local now = tick()
+        while tick() - now < interval do end
+    end)
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local dir = camera.CFrame.LookVector
+            local att = Instance.new("Attachment")
+            att.Parent = hrp
+            local lv = Instance.new("LinearVelocity")
+            lv.MaxForce = math.huge
+            lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+            lv.VectorVelocity = dir * 400
+            lv.Attachment0 = att
+            lv.Parent = hrp
+            task.delay(0.9, function()
+                if lv and lv.Parent then lv:Destroy() end
+                if att and att.Parent then att:Destroy() end
+            end)
+        end
+    end
+    task.wait(0.10)
+    sanguineLagBusy = false
+end
+
 function startSanguineAutoWatcher()
     if SanguineAutoConnection then SanguineAutoConnection:Disconnect() end
     local char = player.Character
@@ -1387,6 +1629,25 @@ function startSanguineAutoWatcher()
         if animId:find("14586872029") or animId:find("14418367908") or animId:find("14418370048") then
             SanguineAutoCooldown = true
             dropFPS(SanguineAutoDropDuration)
+            local char2 = player.Character
+            if char2 then
+                local hrp2 = char2:FindFirstChild("HumanoidRootPart")
+                if hrp2 then
+                    local dir2 = camera.CFrame.LookVector
+                    local att2 = Instance.new("Attachment")
+                    att2.Parent = hrp2
+                    local lv2 = Instance.new("LinearVelocity")
+                    lv2.MaxForce = math.huge
+                    lv2.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+                    lv2.VectorVelocity = dir2 * 400
+                    lv2.Attachment0 = att2
+                    lv2.Parent = hrp2
+                    task.delay(0.9, function()
+                        if lv2 and lv2.Parent then lv2:Destroy() end
+                        if att2 and att2.Parent then att2:Destroy() end
+                    end)
+                end
+            end
             task.delay(SanguineAutoDropDuration + 0.5, function()
                 SanguineAutoCooldown = false
             end)
@@ -2346,7 +2607,7 @@ local THEMES = {
     ["Cyan"] = Color3.fromRGB(0, 255, 255),
     ["Orange"] = Color3.fromRGB(255, 140, 0),
 }
-local currentThemeColor = THEMES["Crimson Red"] -- Color por defecto Rojo
+local currentThemeColor = THEMES["Neon Purple"] -- Color por defecto Morado
 local COLORS = {
     Background = Color3.fromRGB(0, 0, 0), -- Pure Transparent
     PanelBG = Color3.fromRGB(0, 0, 0), -- Pure Transparent
@@ -2604,7 +2865,7 @@ bgImageFrame.BackgroundTransparency = 1
 bgImageFrame.ImageTransparency = 0 -- Wallpaper 100% Nítido y Cristalino
 bgImageFrame.ScaleType = Enum.ScaleType.Crop
 bgImageFrame.ZIndex = 0
-bgImageFrame.Image = "rbxassetid://109470605984573" -- ID de Textura Anime 3 Nativo Fijo por Defecto
+bgImageFrame.Image = "rbxassetid://132404081379154" -- ID de Textura Anime 8 Nativo Fijo por Defecto
 Instance.new("UICorner", bgImageFrame).CornerRadius = UDim.new(0, 24)
 
 -- Pre-carga forzada de la textura para PC y Celular
@@ -2677,13 +2938,14 @@ openButton.Active = true
 openButton.Draggable = true
 openButton.Parent = toggleIconGui
 
--- IMAGEN DE FONDO DEL TOGGLE
+-- IMAGEN DE FONDO DEL TOGGLE (Muestra la foto del Wallpaper Seleccionado)
 local toggleBG = Instance.new("ImageLabel")
 toggleBG.Name = "ToggleBackground"
-toggleBG.Image = "rbxassetid://77588509473758"
+toggleBG.Image = "rbxassetid://132404081379154" -- Wallpaper Anime 8 por Defecto
 toggleBG.Size = UDim2.new(1, 0, 1, 0)
 toggleBG.Position = UDim2.new(0, 0, 0, 0)
 toggleBG.BackgroundTransparency = 1
+toggleBG.ScaleType = Enum.ScaleType.Crop
 toggleBG.ZIndex = 1 
 toggleBG.Parent = openButton
 
@@ -2832,6 +3094,7 @@ local GlitchesPage = createScrollingPage()
 local CamLockPage = createScrollingPage()
 local SoruPage = createScrollingPage()
 local AppearancePage = createScrollingPage()
+local SongsPage = createScrollingPage()
 local BlacklistPage = createScrollingPage()
 local SacredVFXPage = createScrollingPage()
 local MiscPage = createScrollingPage()
@@ -2924,7 +3187,11 @@ TRANSLATIONS = {
         ["Performance"] = "Performance",
         ["Socials & Settings"] = "Socials & Settings",
         ["Language"] = "Language",
+        ["Songs"] = "Songs & Music",
+        ["Auto Race V4"] = "Auto Race V4 (Awakening)",
         ["Silent Aim Blacklist"] = "Silent Aim Blacklist",
+        ["Sanguine Z No Cooldown"] = "Sanguine Z No Cooldown",
+        ["Anti Stun and Hitbox Attack [Beta]"] = "Anti Stun and Hitbox Attack [Beta]",
 
         -- Toggles
         ["General ESP"] = "General ESP",
@@ -3025,7 +3292,11 @@ TRANSLATIONS = {
         ["Performance"] = "Rendimiento",
         ["Socials & Settings"] = "Social y Ajustes",
         ["Language"] = "Idioma",
+        ["Songs"] = "Canciones y Música",
+        ["Auto Race V4"] = "Auto Raza V4 (Despertar)",
         ["Silent Aim Blacklist"] = "Lista Negra Silent Aim",
+        ["Sanguine Z No Cooldown"] = "Sanguine Z Sin Cooldown",
+        ["Anti Stun and Hitbox Attack [Beta]"] = "Anti Aturdimiento y Ataque Hitbox [Beta]",
 
         -- Toggles
         ["General ESP"] = "ESP General",
@@ -3094,9 +3365,26 @@ local categories = {
     { key = "ESP", page = CamLockPage, y = 144 },
     { key = "Soru", page = SoruPage, y = 174 },
     { key = "Appearance", page = AppearancePage, y = 204 },
-    { key = "VFX", page = SacredVFXPage, y = 234 },
-    { key = "Misc", page = MiscPage, y = 264 },
+    { key = "Songs", page = SongsPage, y = 234 },
+    { key = "VFX", page = SacredVFXPage, y = 264 },
+    { key = "Misc", page = MiscPage, y = 294 },
 }
+
+local sidebarScroll = Instance.new("ScrollingFrame", sidebar)
+sidebarScroll.Size = UDim2.new(1, 0, 1, -55)
+sidebarScroll.Position = UDim2.new(0, 0, 0, 48)
+sidebarScroll.BackgroundTransparency = 1
+sidebarScroll.BorderSizePixel = 0
+sidebarScroll.ScrollBarThickness = 2
+sidebarScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+sidebarScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local sidebarLayout = Instance.new("UIListLayout", sidebarScroll)
+sidebarLayout.Padding = UDim.new(0, 4)
+sidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local sidebarPadding = Instance.new("UIPadding", sidebarScroll)
+sidebarPadding.PaddingLeft = UDim.new(0, 10)
 
 function updateUILanguage(lang)
     currentLang = lang or currentLang
@@ -3129,6 +3417,10 @@ function updateUILanguage(lang)
         end
     end
 
+    if songNoticeLbl then
+        songNoticeLbl.Text = (currentLang == "ES" and "⚠️ Aviso: Las canciones tienen sonidos raros al principio" or "⚠️ Notice: Songs may have strange sounds at the beginning")
+    end
+
     if langBtn then langBtn.Text = dict["LangBtn"] or (currentLang == "ES" and "🌐 Idioma: Español (ES)" or "🌐 Language: English (EN)") end
     if copyBtn then copyBtn.Text = dict["Copy Discord Link"] or "💬 Copy Discord Link" end
     if copyTikTokBtn then copyTikTokBtn.Text = dict["Copy TikTok"] or "🎵 TikTok: @rivalsxrodx" end
@@ -3138,13 +3430,12 @@ end
 
 local activeTabBtn = nil
 for _, cat in ipairs(categories) do
-    local btn = Instance.new("TextButton", sidebar)
+    local btn = Instance.new("TextButton", sidebarScroll)
     btn.Text = TRANSLATIONS[currentLang][cat.key] or cat.key
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11.5
+    btn.TextSize = 11
     btn.TextColor3 = (cat.page == StatsPage) and currentThemeColor or COLORS.TextGray
-    btn.Size = UDim2.new(1, -14, 0, 26)
-    btn.Position = UDim2.new(0, 14, 0, cat.y)
+    btn.Size = UDim2.new(1, -12, 0, 24)
     btn.BackgroundTransparency = 1
     btn.TextXAlignment = Enum.TextXAlignment.Left
     cat.btn = btn
@@ -3165,7 +3456,7 @@ for _, cat in ipairs(categories) do
         btn.TextColor3 = currentThemeColor
         StatsPage.Visible = false; CombatPage.Visible = false; GlitchesPage.Visible = false
         CamLockPage.Visible = false; SoruPage.Visible = false
-        AppearancePage.Visible = false; BlacklistPage.Visible = false
+        AppearancePage.Visible = false; SongsPage.Visible = false; BlacklistPage.Visible = false
         SacredVFXPage.Visible = false; MiscPage.Visible = false
         cat.page.Visible = true
         if cat.key == "Soru" then
@@ -3668,6 +3959,12 @@ addToggleElement(c1, "Ignore PvP OFF Players", _G.G_AimbotPvPCheck, 192, functio
 addToggleElement(c1, "Target Rainbow Body ESP", _G.G_TargetRainbowBodyESP, 216, function(v) _G.G_TargetRainbowBodyESP = v end, "RainbowBodyESP")
 addStepper(c1, "Aimbot Max Dist:", 240, 100, 5000, 250, function() return maxRange end, function(v) maxRange = v end, "st")
 
+-- Combat: Anti Stun and Hitbox Attack [Beta]
+local antiStunCard = createModuleCard("Anti Stun and Hitbox Attack [Beta]", 50, CombatPage)
+addToggleElement(antiStunCard, "Anti Stun and Hitbox Attack [Beta]", AntiStunHitboxEnabled, 24, function(v)
+    if v then enableAntiStunHitbox() else disableAntiStunHitbox() end
+end, "AntiStunHitbox")
+
 local c2 = createModuleCard("Fast Attack & Combat", 50, CombatPage)
 addToggleElement(c2, "Fast Attack", FastAttackEnabled, 24, function(v) FastAttackEnabled = v; if v then StartFastAttack() end end, "FastAttack")
 
@@ -3701,7 +3998,56 @@ end, "")
 addToggleElement(c3, "Noclip", NoclipEnabled, 152, function(v) SetNoclip(v) end, "Noclip")
 addToggleElement(c3, "Walk on Water", WalkOnWaterEnabled, 176, function(v) WalkOnWaterEnabled = v end, "WalkOnWater")
 
+-- Combat: Auto Race V4
+local autoV4Card = createModuleCard("Auto Race V4", 50, CombatPage)
+addToggleElement(autoV4Card, "Auto Race V4", AutoV4Enabled, 24, function(v)
+    AutoV4Enabled = v
+    if v then startAutoV4Loop() else stopAutoV4Loop() end
+end, "AutoV4")
 
+
+
+-- Glitches: Sanguine Z No Cooldown
+local sanguineNoCDCard = createModuleCard("Sanguine Z No Cooldown", 50, GlitchesPage)
+addToggleElement(sanguineNoCDCard, "Sanguine Z No Cooldown", SanguineNoCDEnabled, 24, function(v)
+    SanguineNoCDEnabled = v
+    if v then
+        noCDCharConnection = player.CharacterAdded:Connect(function(character)
+            character:SetAttribute("AllCooldown", 3)
+        end)
+        if player.Character then
+            player.Character:SetAttribute("AllCooldown", 3)
+        end
+    else
+        if noCDCharConnection then
+            noCDCharConnection:Disconnect()
+            noCDCharConnection = nil
+        end
+        if player.Character then
+            player.Character:SetAttribute("AllCooldown", nil)
+        end
+    end
+end, "SanguineNoCD")
+
+-- Glitches: Sanguine Z Manual
+local sanguineManualCard = createModuleCard("Sanguine Z Manual", 50, GlitchesPage)
+addToggleElement(sanguineManualCard, "Sanguine Z TP Widget", SanguineManualWidgetVisible, 24, function(v)
+    SanguineManualWidgetVisible = v
+    updateWidgetsVisuals()
+end, "SanguineManualWidget")
+
+-- Glitches: Sanguine Z Auto
+local sanguineAutoCard = createModuleCard("Sanguine Z Auto", 75, GlitchesPage)
+addToggleElement(sanguineAutoCard, "Sanguine Z Auto", SanguineAutoEnabled, 24, function(v)
+    SanguineAutoEnabled = v
+    SanguineWidgetVisible = v
+    if v then startSanguineAutoWatcher() else if SanguineAutoConnection then SanguineAutoConnection:Disconnect(); SanguineAutoConnection = nil end end
+    updateWidgetsVisuals()
+end, "SanguineAuto")
+
+addStepper(sanguineAutoCard, "Drop Duration:", 48, 0.5, 5.0, 0.5, function() return SanguineAutoDropDuration end, function(v) 
+    SanguineAutoDropDuration = v
+end, "s")
 
 -- Glitches: No Animations
 local noAnimCard = createModuleCard("No Animations", 50, GlitchesPage)
@@ -3819,17 +4165,71 @@ bloxstrapBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Macro Beta Module
-local macroCard = createModuleCard("Macro Beta", 125, GlitchesPage)
+local macroCard = createModuleCard("Macro Beta", 155, GlitchesPage)
+-- ============================================================
+-- SEPARATE MACRO CONFIG FILE SYSTEM (6 HABILIDADES / 4 HOTBAR SLOTS)
+-- ============================================================
+function SaveMacroConfig()
+    local macroConf = {
+        MacroBeta = MacroEnabled,
+        MacroMode = MacroMode,
+        MacroSlot1 = MacroSlot1, MacroKey1 = MacroKey1, MacroDelay1 = MacroDelay1,
+        MacroSlot2 = MacroSlot2, MacroKey2 = MacroKey2, MacroDelay2 = MacroDelay2,
+        MacroSlot3 = MacroSlot3, MacroKey3 = MacroKey3, MacroDelay3 = MacroDelay3,
+        MacroSlot4 = MacroSlot4, MacroKey4 = MacroKey4, MacroDelay4 = MacroDelay4,
+        MacroSlot5 = MacroSlot5, MacroKey5 = MacroKey5, MacroDelay5 = MacroDelay5,
+        MacroSlot6 = MacroSlot6, MacroKey6 = MacroKey6, MacroDelay6 = MacroDelay6,
+    }
+    pcall(function()
+        if writefile then
+            writefile("SacredAHK_MacroConfig.json", HttpService:JSONEncode(macroConf))
+            print("💾 Sacred AHK Macro Config Saved to SacredAHK_MacroConfig.json!")
+        end
+    end)
+end
+
+function LoadMacroConfig()
+    pcall(function()
+        if readfile and isfile and isfile("SacredAHK_MacroConfig.json") then
+            local data = readfile("SacredAHK_MacroConfig.json")
+            local conf = HttpService:JSONDecode(data)
+            if conf then
+                if conf.MacroBeta ~= nil then MacroEnabled = conf.MacroBeta end
+                if conf.MacroMode ~= nil then MacroMode = conf.MacroMode end
+                if conf.MacroSlot1 ~= nil then MacroSlot1 = conf.MacroSlot1 end
+                if conf.MacroKey1 ~= nil then MacroKey1 = conf.MacroKey1 end
+                if conf.MacroSlot2 ~= nil then MacroSlot2 = conf.MacroSlot2 end
+                if conf.MacroKey2 ~= nil then MacroKey2 = conf.MacroKey2 end
+                if conf.MacroSlot3 ~= nil then MacroSlot3 = conf.MacroSlot3 end
+                if conf.MacroKey3 ~= nil then MacroKey3 = conf.MacroKey3 end
+                if conf.MacroSlot4 ~= nil then MacroSlot4 = conf.MacroSlot4 end
+                if conf.MacroKey4 ~= nil then MacroKey4 = conf.MacroKey4 end
+                if conf.MacroSlot5 ~= nil then MacroSlot5 = conf.MacroSlot5 end
+                if conf.MacroKey5 ~= nil then MacroKey5 = conf.MacroKey5 end
+                if conf.MacroSlot6 ~= nil then MacroSlot6 = conf.MacroSlot6 end
+                if conf.MacroKey6 ~= nil then MacroKey6 = conf.MacroKey6 end
+                if conf.MacroDelay1 ~= nil then MacroDelay1 = conf.MacroDelay1 end
+                if conf.MacroDelay2 ~= nil then MacroDelay2 = conf.MacroDelay2 end
+                if conf.MacroDelay3 ~= nil then MacroDelay3 = conf.MacroDelay3 end
+                if conf.MacroDelay4 ~= nil then MacroDelay4 = conf.MacroDelay4 end
+                if conf.MacroDelay5 ~= nil then MacroDelay5 = conf.MacroDelay5 end
+                if conf.MacroDelay6 ~= nil then MacroDelay6 = conf.MacroDelay6 end
+            end
+        end
+    end)
+end
+
 MacroEnabled = false
 MacroMode = "Soru" -- "Soru" o "Combo"
-MacroSlot1, MacroKey1 = 1, "Z"
-MacroSlot2, MacroKey2 = 2, "X"
-MacroSlot3, MacroKey3 = 3, "C"
-MacroSlot4, MacroKey4 = 4, "V"
-MacroDelay = 0.30
+MacroSlot1, MacroKey1, MacroDelay1 = 1, "Z", 0.30
+MacroSlot2, MacroKey2, MacroDelay2 = 2, "X", 0.30
+MacroSlot3, MacroKey3, MacroDelay3 = 3, "C", 0.30
+MacroSlot4, MacroKey4, MacroDelay4 = 4, "V", 0.30
+MacroSlot5, MacroKey5, MacroDelay5 = 1, "OFF", 0.30
+MacroSlot6, MacroKey6, MacroDelay6 = 1, "OFF", 0.30
 MacroExecuting = false
 
--- UI Flotante de Configuración del Macro (Sin botones de Soru ni Hacer Combo redundantes)
+-- UI Flotante de Configuración del Macro (Scrollable + 6 Habilidades + Delay Individual)
 local macroGui = nil
 
 function showMacroConfigUI()
@@ -3841,10 +4241,10 @@ function showMacroConfigUI()
     macroGui.Parent = playerGui
 
     local main = Instance.new("Frame", macroGui)
-    main.Size = UDim2.new(0, 260, 0, 470)
-    main.Position = UDim2.new(0.5, -130, 0.15, 0)
-    main.BackgroundColor3 = Color3.fromRGB(18, 18, 26) -- Fondo Negro/Gris Nítido para visibilidad
-    main.BackgroundTransparency = 0.1 -- Opaco para máxima legibilidad
+    main.Size = UDim2.new(0, 280, 0, 520)
+    main.Position = UDim2.new(0.5, -140, 0.05, 0)
+    main.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+    main.BackgroundTransparency = 0.05
     main.Active = true
     main.Draggable = true
     Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
@@ -3853,12 +4253,14 @@ function showMacroConfigUI()
     stroke.Thickness = 1.5
 
     local title = Instance.new("TextLabel", main)
-    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Size = UDim2.new(1, -35, 0, 32)
+    title.Position = UDim2.new(0, 10, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "MACRO COMBO PRO (4 SLOTS)"
+    title.Text = "MACRO COMBO PRO (6 HABILIDADES)"
     title.TextColor3 = currentThemeColor
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 13
+    title.TextSize = 12.5
+    title.TextXAlignment = Enum.TextXAlignment.Left
 
     local closeBtn = Instance.new("TextButton", main)
     closeBtn.Size = UDim2.new(0, 24, 0, 24)
@@ -3870,6 +4272,46 @@ function showMacroConfigUI()
     closeBtn.TextSize = 14
     closeBtn.MouseButton1Click:Connect(function() macroGui:Destroy(); macroGui = nil end)
 
+    -- Botón de Guardar Pinned Fijo en la parte Superior
+    local saveMacroBtn = Instance.new("TextButton", main)
+    saveMacroBtn.Size = UDim2.new(1, -20, 0, 34)
+    saveMacroBtn.Position = UDim2.new(0, 10, 0, 34)
+    saveMacroBtn.BackgroundColor3 = currentThemeColor
+    saveMacroBtn.BackgroundTransparency = 0
+    saveMacroBtn.Text = "💾 GUARDAR CONFIG MACRO"
+    saveMacroBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
+    saveMacroBtn.Font = Enum.Font.GothamBold
+    saveMacroBtn.TextSize = 11
+    saveMacroBtn.ZIndex = 25
+    Instance.new("UICorner", saveMacroBtn).CornerRadius = UDim.new(0, 6)
+    local saveSt = Instance.new("UIStroke", saveMacroBtn)
+    saveSt.Color = Color3.fromRGB(255, 255, 255)
+    saveSt.Thickness = 1
+
+    saveMacroBtn.MouseButton1Click:Connect(function()
+        pcall(SaveMacroConfig)
+        pcall(SaveConfig)
+        saveMacroBtn.Text = "✅ MACRO GUARDADO!"
+        task.delay(1.2, function()
+            if saveMacroBtn and saveMacroBtn.Parent then
+                saveMacroBtn.Text = "💾 GUARDAR CONFIG MACRO"
+            end
+        end)
+    end)
+
+    local scroll = Instance.new("ScrollingFrame", main)
+    scroll.Size = UDim2.new(1, -12, 1, -80)
+    scroll.Position = UDim2.new(0, 6, 0, 74)
+    scroll.BackgroundTransparency = 1
+    scroll.BorderSizePixel = 0
+    scroll.ScrollBarThickness = 5
+    scroll.ScrollBarImageColor3 = currentThemeColor
+    scroll.AutomaticCanvasSize = Enum.AutomaticSize.None
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 720)
+    local listLayout = Instance.new("UIListLayout", scroll)
+    listLayout.Padding = UDim.new(0, 8)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
     local function makeBtn(parent, text, pos, size)
         local b = Instance.new("TextButton", parent)
         b.Size = size
@@ -3879,7 +4321,7 @@ function showMacroConfigUI()
         b.Text = text
         b.TextColor3 = Color3.fromRGB(255, 255, 255)
         b.Font = Enum.Font.GothamBold
-        b.TextSize = 11
+        b.TextSize = 10.5
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
         local bSt = Instance.new("UIStroke", b)
         bSt.Color = currentThemeColor
@@ -3887,24 +4329,36 @@ function showMacroConfigUI()
         return b
     end
 
-    local function setupSelector(yPos, labelText, defaultSlot, defaultKey, allowOff, onSelect)
-        local lbl = Instance.new("TextLabel", main)
-        lbl.Size = UDim2.new(0, 200, 0, 18)
-        lbl.Position = UDim2.new(0, 10, 0, yPos)
+    local function createSlotRow(order, labelText, defaultSlot, defaultKey, defaultDelay, allowOff, onSelect)
+        local rowFrame = Instance.new("Frame", scroll)
+        rowFrame.Size = UDim2.new(1, -8, 0, 105)
+        rowFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+        rowFrame.BackgroundTransparency = 0.4
+        rowFrame.LayoutOrder = order
+        Instance.new("UICorner", rowFrame).CornerRadius = UDim.new(0, 8)
+        local rowStroke = Instance.new("UIStroke", rowFrame)
+        rowStroke.Color = currentThemeColor
+        rowStroke.Thickness = 0.8
+        rowStroke.Transparency = 0.5
+
+        local lbl = Instance.new("TextLabel", rowFrame)
+        lbl.Size = UDim2.new(1, -12, 0, 20)
+        lbl.Position = UDim2.new(0, 8, 0, 4)
         lbl.BackgroundTransparency = 1
         lbl.Text = labelText
         lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
         lbl.Font = Enum.Font.GothamBold
-        lbl.TextSize = 11
+        lbl.TextSize = 10.5
         lbl.TextXAlignment = Enum.TextXAlignment.Left
 
         local selectedSlot = defaultSlot
         local selectedKey = defaultKey
+        local selectedDelay = defaultDelay
 
         local slotBtns = {}
-        local xOff = 10
+        local xOff = 8
         for _, s in ipairs({1, 2, 3, 4}) do
-            local b = makeBtn(main, tostring(s), UDim2.new(0, xOff, 0, yPos + 20), UDim2.new(0, 40, 0, 24))
+            local b = makeBtn(rowFrame, tostring(s), UDim2.new(0, xOff, 0, 24), UDim2.new(0, 45, 0, 22))
             slotBtns[s] = b
             if s == selectedSlot then
                 b.BackgroundColor3 = currentThemeColor
@@ -3918,25 +4372,21 @@ function showMacroConfigUI()
                 end
                 b.BackgroundColor3 = currentThemeColor
                 b.TextColor3 = Color3.fromRGB(15, 10, 20)
-                onSelect(selectedSlot, selectedKey)
+                onSelect(selectedSlot, selectedKey, selectedDelay)
             end)
-            xOff = xOff + 45
+            xOff = xOff + 50
         end
 
         local keyBtns = {}
-        xOff = 10
-        local keyOptions = {"Z", "X", "C", "V", "F"}
-        if allowOff then
-            table.insert(keyOptions, "OFF")
-        end
+        xOff = 8
+        local keyOptions = {"Z", "X", "C", "V"}
+        if allowOff then table.insert(keyOptions, "OFF") end
 
         for _, k in ipairs(keyOptions) do
-            local btnWidth = (k == "OFF") and 42 or 32
-            local b = makeBtn(main, k, UDim2.new(0, xOff, 0, yPos + 46), UDim2.new(0, btnWidth, 0, 24))
+            local btnWidth = (k == "OFF") and 42 or 38
+            local b = makeBtn(rowFrame, k, UDim2.new(0, xOff, 0, 49), UDim2.new(0, btnWidth, 0, 22))
             keyBtns[k] = b
-            if k == "OFF" then
-                b.TextColor3 = Color3.fromRGB(255, 80, 80)
-            end
+            if k == "OFF" then b.TextColor3 = Color3.fromRGB(255, 80, 80) end
             if k == selectedKey then
                 b.BackgroundColor3 = (k == "OFF") and Color3.fromRGB(255, 50, 50) or currentThemeColor
                 b.TextColor3 = Color3.fromRGB(15, 10, 20)
@@ -3949,58 +4399,52 @@ function showMacroConfigUI()
                 end
                 b.BackgroundColor3 = (k == "OFF") and Color3.fromRGB(255, 50, 50) or currentThemeColor
                 b.TextColor3 = Color3.fromRGB(15, 10, 20)
-                onSelect(selectedSlot, selectedKey)
+                onSelect(selectedSlot, selectedKey, selectedDelay)
             end)
-            xOff = xOff + btnWidth + 4
+            xOff = xOff + btnWidth + 6
         end
+
+        -- Delay Per Skill Stepper
+        local delayLbl = Instance.new("TextLabel", rowFrame)
+        delayLbl.Size = UDim2.new(0, 50, 0, 22)
+        delayLbl.Position = UDim2.new(0, 8, 0, 75)
+        delayLbl.BackgroundTransparency = 1
+        delayLbl.Text = "Delay:"
+        delayLbl.TextColor3 = Color3.fromRGB(200, 200, 210)
+        delayLbl.Font = Enum.Font.GothamBold
+        delayLbl.TextSize = 10
+        delayLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+        local minusBtn = makeBtn(rowFrame, "-", UDim2.new(0, 55, 0, 75), UDim2.new(0, 22, 0, 22))
+        local valLabel = Instance.new("TextLabel", rowFrame)
+        valLabel.Size = UDim2.new(0, 48, 0, 22)
+        valLabel.Position = UDim2.new(0, 80, 0, 75)
+        valLabel.BackgroundTransparency = 1
+        valLabel.Text = string.format("%.2fs", selectedDelay)
+        valLabel.TextColor3 = currentThemeColor
+        valLabel.Font = Enum.Font.GothamBold
+        valLabel.TextSize = 10.5
+        local plusBtn = makeBtn(rowFrame, "+", UDim2.new(0, 130, 0, 75), UDim2.new(0, 22, 0, 22))
+
+        minusBtn.MouseButton1Click:Connect(function()
+            selectedDelay = math.max(0.05, math.floor((selectedDelay - 0.05) * 100 + 0.5) / 100)
+            valLabel.Text = string.format("%.2fs", selectedDelay)
+            onSelect(selectedSlot, selectedKey, selectedDelay)
+        end)
+
+        plusBtn.MouseButton1Click:Connect(function()
+            selectedDelay = math.min(1.50, math.floor((selectedDelay + 0.05) * 100 + 0.5) / 100)
+            valLabel.Text = string.format("%.2fs", selectedDelay)
+            onSelect(selectedSlot, selectedKey, selectedDelay)
+        end)
     end
 
-    setupSelector(32, "Habilidad 1:", MacroSlot1, MacroKey1, false, function(s, k) MacroSlot1 = s; MacroKey1 = k end)
-    setupSelector(112, "Habilidad 2:", MacroSlot2, MacroKey2, true, function(s, k) MacroSlot2 = s; MacroKey2 = k end)
-    setupSelector(192, "Habilidad 3:", MacroSlot3, MacroKey3, true, function(s, k) MacroSlot3 = s; MacroKey3 = k end)
-    setupSelector(272, "Habilidad 4:", MacroSlot4, MacroKey4, true, function(s, k) MacroSlot4 = s; MacroKey4 = k end)
-
-    local delayFrame = Instance.new("Frame", main)
-    delayFrame.Size = UDim2.new(1, -20, 0, 30)
-    delayFrame.Position = UDim2.new(0, 10, 0, 356)
-    delayFrame.BackgroundTransparency = 1
-
-    local delayTitle = Instance.new("TextLabel", delayFrame)
-    delayTitle.Size = UDim2.new(0, 100, 1, 0)
-    delayTitle.Position = UDim2.new(0, 0, 0, 0)
-    delayTitle.BackgroundTransparency = 1
-    delayTitle.Text = "Delay Combo:"
-    delayTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    delayTitle.Font = Enum.Font.GothamBold
-    delayTitle.TextSize = 11
-    delayTitle.TextXAlignment = Enum.TextXAlignment.Left
-
-    local minusBtn = makeBtn(delayFrame, "-", UDim2.new(0, 105, 0, 2), UDim2.new(0, 28, 0, 26))
-    local valLabel = Instance.new("TextLabel", delayFrame)
-    valLabel.Size = UDim2.new(0, 65, 0, 26)
-    valLabel.Position = UDim2.new(0, 138, 0, 2)
-    valLabel.BackgroundTransparency = 1
-    valLabel.Text = string.format("%.2fs", MacroDelay)
-    valLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
-    valLabel.Font = Enum.Font.GothamBold
-    valLabel.TextSize = 12
-
-    local plusBtn = makeBtn(delayFrame, "+", UDim2.new(0, 208, 0, 2), UDim2.new(0, 28, 0, 26))
-
-    minusBtn.MouseButton1Click:Connect(function()
-        MacroDelay = math.max(0.05, math.floor((MacroDelay - 0.05) * 100 + 0.5) / 100)
-        valLabel.Text = string.format("%.2fs", MacroDelay)
-    end)
-
-    plusBtn.MouseButton1Click:Connect(function()
-        MacroDelay = math.min(0.50, math.floor((MacroDelay + 0.05) * 100 + 0.5) / 100)
-        valLabel.Text = string.format("%.2fs", MacroDelay)
-    end)
-
-    local saveCloseBtn = makeBtn(main, "GUARDAR Y CERRAR", UDim2.new(0, 10, 0, 405), UDim2.new(1, -20, 0, 34))
-    saveCloseBtn.BackgroundColor3 = currentThemeColor
-    saveCloseBtn.TextColor3 = Color3.fromRGB(15, 10, 20)
-    saveCloseBtn.MouseButton1Click:Connect(function() macroGui:Destroy(); macroGui = nil end)
+    createSlotRow(1, "Habilidad 1:", MacroSlot1, MacroKey1, MacroDelay1, false, function(s, k, d) MacroSlot1 = s; MacroKey1 = k; MacroDelay1 = d end)
+    createSlotRow(2, "Habilidad 2:", MacroSlot2, MacroKey2, MacroDelay2, true, function(s, k, d) MacroSlot2 = s; MacroKey2 = k; MacroDelay2 = d end)
+    createSlotRow(3, "Habilidad 3:", MacroSlot3, MacroKey3, MacroDelay3, true, function(s, k, d) MacroSlot3 = s; MacroKey3 = k; MacroDelay3 = d end)
+    createSlotRow(4, "Habilidad 4:", MacroSlot4, MacroKey4, MacroDelay4, true, function(s, k, d) MacroSlot4 = s; MacroKey4 = k; MacroDelay4 = d end)
+    createSlotRow(5, "Habilidad 5:", MacroSlot5, MacroKey5, MacroDelay5, true, function(s, k, d) MacroSlot5 = s; MacroKey5 = k; MacroDelay5 = d end)
+    createSlotRow(6, "Habilidad 6:", MacroSlot6, MacroKey6, MacroDelay6, true, function(s, k, d) MacroSlot6 = s; MacroKey6 = k; MacroDelay6 = d end)
 end
 
 -- Botón Flotante Externo para Hacer Combo
@@ -4030,7 +4474,7 @@ function showFloatingComboTrigger(show)
     floatStroke.Color = Color3.fromRGB(255, 255, 255)
     floatStroke.Thickness = 1.2
 
-    local SLOT_KEYS = { [1] = Enum.KeyCode.One, [2] = Enum.KeyCode.Two, [3] = Enum.KeyCode.Three, [4] = Enum.KeyCode.Four }
+    local SLOT_KEYS = { [1] = Enum.KeyCode.One, [2] = Enum.KeyCode.Two, [3] = Enum.KeyCode.Three, [4] = Enum.KeyCode.Four, [5] = Enum.KeyCode.Five, [6] = Enum.KeyCode.Six }
     local function pressKey(kc)
         if not kc then return end
         VirtualInputManager:SendKeyEvent(true, kc, false, game)
@@ -4051,28 +4495,23 @@ function showFloatingComboTrigger(show)
     end
 
     local function executeMacroCombo()
-        -- Slot 1
-        if MacroKey1 and MacroKey1 ~= "OFF" then
-            safeEquip(MacroSlot1)
-            pressKey(Enum.KeyCode[MacroKey1])
-            task.wait(MacroDelay)
-        end
-        -- Slot 2
-        if MacroKey2 and MacroKey2 ~= "OFF" then
-            if MacroSlot1 ~= MacroSlot2 then safeEquip(MacroSlot2) end
-            pressKey(Enum.KeyCode[MacroKey2])
-            task.wait(MacroDelay)
-        end
-        -- Slot 3
-        if MacroKey3 and MacroKey3 ~= "OFF" then
-            if MacroSlot2 ~= MacroSlot3 then safeEquip(MacroSlot3) end
-            pressKey(Enum.KeyCode[MacroKey3])
-            task.wait(MacroDelay)
-        end
-        -- Slot 4
-        if MacroKey4 and MacroKey4 ~= "OFF" then
-            if MacroSlot3 ~= MacroSlot4 then safeEquip(MacroSlot4) end
-            pressKey(Enum.KeyCode[MacroKey4])
+        local slots = {
+            {slot = MacroSlot1, key = MacroKey1, delay = MacroDelay1},
+            {slot = MacroSlot2, key = MacroKey2, delay = MacroDelay2},
+            {slot = MacroSlot3, key = MacroKey3, delay = MacroDelay3},
+            {slot = MacroSlot4, key = MacroKey4, delay = MacroDelay4},
+            {slot = MacroSlot5, key = MacroKey5, delay = MacroDelay5},
+            {slot = MacroSlot6, key = MacroKey6, delay = MacroDelay6},
+        }
+
+        local prevSlot = nil
+        for _, item in ipairs(slots) do
+            if item.key and item.key ~= "OFF" then
+                if item.slot ~= prevSlot then safeEquip(item.slot) end
+                pressKey(Enum.KeyCode[item.key])
+                prevSlot = item.slot
+                task.wait(item.delay or 0.3)
+            end
         end
     end
 
@@ -4532,17 +4971,18 @@ local bgOptions = {
     { name = "Anime 5 (133381969265590)", id = "rbxassetid://133381969265590" },
     { name = "Anime 6 (102851043691652)", id = "rbxassetid://102851043691652" },
     { name = "Anime 7 (134915662604167)", id = "rbxassetid://134915662604167" },
+    { name = "Anime 8 (132404081379154)", id = "rbxassetid://132404081379154" },
     { name = "None", id = "none" }
 }
 
-local currentBgIdx = 3
+local currentBgIdx = 8
 
 local bgSelectorBtn = Instance.new("TextButton", bgSelectorCard)
 bgSelectorBtn.Size = UDim2.new(1, -16, 0, 26)
-bgSelectorBtn.Position = UDim2.new(0, 8, 0, 26)
+bgSelectorBtn.Position = UDim2.new(0, 8, 0, 22)
 bgSelectorBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 bgSelectorBtn.BackgroundTransparency = 1 -- 100% Transparente sin recuadro negro/gris!
-bgSelectorBtn.Text = "📷 Wallpaper: " .. bgOptions[3].name
+bgSelectorBtn.Text = "📷 Wallpaper: " .. bgOptions[8].name
 bgSelectorBtn.Font = Enum.Font.GothamBold
 bgSelectorBtn.TextSize = 9
 bgSelectorBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -4560,10 +5000,13 @@ bgSelectorBtn.MouseButton1Click:Connect(function()
     bgSelectorBtn.Text = (currentLang == "ES" and "📷 Fondo: " or "📷 Wallpaper: ") .. selected.name
     if selected.id == "none" then
         bgImageFrame.Visible = false
+        toggleBG.Visible = false
     else
         bgImageFrame.Visible = true
         bgImageFrame.Image = selected.id
-        pcall(function() game:GetService("ContentProvider"):PreloadAsync({bgImageFrame}) end)
+        toggleBG.Visible = true
+        toggleBG.Image = selected.id
+        pcall(function() game:GetService("ContentProvider"):PreloadAsync({bgImageFrame, toggleBG}) end)
     end
 end)
 
@@ -4705,6 +5148,63 @@ for idx, item in ipairs(skyBtnGrid) do
             setBloxSkyColor(item.name, item.color, item.color)
         end
     end)
+end
+-- Songs Page
+do
+local songsNoticeCard = createModuleCard("Songs Notice", 50, SongsPage)
+songNoticeLbl = Instance.new("TextLabel", songsNoticeCard)
+songNoticeLbl.Size = UDim2.new(1, -16, 0, 26)
+songNoticeLbl.Position = UDim2.new(0, 8, 0, 18)
+songNoticeLbl.BackgroundTransparency = 1
+songNoticeLbl.Text = (currentLang == "ES" and "⚠️ Aviso: Las canciones tienen sonidos raros al principio" or "⚠️ Notice: Songs may have strange sounds at the beginning")
+songNoticeLbl.Font = Enum.Font.GothamBold
+songNoticeLbl.TextSize = 8.5
+songNoticeLbl.TextColor3 = Color3.fromRGB(255, 200, 80)
+songNoticeLbl.TextWrapped = true
+
+local songsData = {
+    { name = "nuts (Original)", id = "139982007364841" }
+}
+
+local currentPlayingSound = nil
+local activeSongToggles = {}
+
+local function stopCurrentSong()
+    if currentPlayingSound then
+        pcall(function()
+            currentPlayingSound:Stop()
+            currentPlayingSound:Destroy()
+        end)
+        currentPlayingSound = nil
+    end
+end
+
+for _, sInfo in ipairs(songsData) do
+    local card = createModuleCard(sInfo.name, 50, SongsPage)
+    local songToggle = addToggleElement(card, sInfo.name, false, 24, function(v)
+        if v then
+            stopCurrentSong()
+            for otherName, toggleFn in pairs(activeSongToggles) do
+                if otherName ~= sInfo.name then
+                    pcall(function() toggleFn(false) end)
+                end
+            end
+            local snd = Instance.new("Sound")
+            snd.Name = "SacredSong_" .. sInfo.name
+            snd.SoundId = "rbxassetid://" .. sInfo.id
+            snd.Volume = 1
+            snd.Looped = true
+            snd.Parent = game:GetService("SoundService")
+            pcall(function() snd:Play() end)
+            currentPlayingSound = snd
+        else
+            if currentPlayingSound and currentPlayingSound.Name == "SacredSong_" .. sInfo.name then
+                stopCurrentSong()
+            end
+        end
+    end, "Song_" .. sInfo.name)
+    activeSongToggles[sInfo.name] = songToggle
+end
 end
 
 do
@@ -4875,6 +5375,52 @@ end)
 GrokAIEnabled = false
 
 end
+
+local fontCard = createModuleCard("Fonts", 50, MiscPage)
+
+local fontList = { Enum.Font.GothamBold, Enum.Font.GothamBlack, Enum.Font.GothamSemibold, Enum.Font.Gotham, Enum.Font.SourceSansBold, Enum.Font.SourceSans, Enum.Font.Code, Enum.Font.Arcade }
+local fontNames = { "GothamBold", "GothamBlack", "GothamSemibold", "Gotham", "SourceSansBold", "SourceSans", "Code", "Arcade" }
+local uiFontIdx = 1
+
+local function applyFontToGui(parentObj, fontEnum)
+    if not parentObj then return end
+    for _, obj in ipairs(parentObj:GetDescendants()) do
+        if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+            pcall(function() obj.Font = fontEnum end)
+        end
+    end
+end
+
+local uiFontBtn = Instance.new("TextButton", fontCard)
+uiFontBtn.Size = UDim2.new(1, -20, 0, 24)
+uiFontBtn.Position = UDim2.new(0, 10, 0, 22)
+uiFontBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+uiFontBtn.BackgroundTransparency = 1
+uiFontBtn.Text = "🔤 UI Font: " .. fontNames[uiFontIdx]
+uiFontBtn.Font = Enum.Font.GothamBold
+uiFontBtn.TextSize = 9.5
+uiFontBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", uiFontBtn).CornerRadius = UDim.new(0, 6)
+local uiFStroke = Instance.new("UIStroke", uiFontBtn)
+uiFStroke.Color = currentThemeColor
+uiFStroke.Thickness = 1.2
+table.insert(themeStrokes, uiFStroke)
+table.insert(themeTexts, uiFontBtn)
+
+uiFontBtn.MouseButton1Click:Connect(function()
+    uiFontIdx = (uiFontIdx % #fontList) + 1
+    uiFontBtn.Text = "🔤 UI Font: " .. fontNames[uiFontIdx]
+    local selectedFont = fontList[uiFontIdx]
+    applyFontToGui(screenGui, selectedFont)
+    applyFontToGui(toggleIconGui, selectedFont)
+    applyFontToGui(playerWidgetGui, selectedFont)
+    applyFontToGui(npcWidgetGui, selectedFont)
+    applyFontToGui(superJumpWidgetGui, selectedFont)
+    applyFontToGui(sanguineAutoWidgetGui, selectedFont)
+    applyFontToGui(sanguineManualWidgetGui, selectedFont)
+    applyFontToGui(soulGuitarWidgetGui, selectedFont)
+    applyFontToGui(portalSoruWidgetGui, selectedFont)
+end)
 
 local langCard = createModuleCard("Language", 60, MiscPage)
 langBtn = Instance.new("TextButton", langCard)
@@ -5118,6 +5664,7 @@ end)
 
 updateWidgetsVisuals()
 pcall(LoadConfig)
+pcall(LoadMacroConfig)
 centerAndMaximizeUI()
 end
-print("✅ SACRED AHK v11.5 LOADED - ALL TOGGLES AND CONFIGS 100% PERSISTENT")
+print("✅ SACRED AHK v12.5 LOADED - ALL TOGGLES AND CONFIGS 100% PERSISTENT")
