@@ -1,4 +1,155 @@
 -- ============================================================
+-- SACRED AHK VERSION 12.5 | KEYLESS ANNOUNCEMENT
+-- ============================================================
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer or Players:WaitForChildOfClass("Player")
+local playerGui = player:WaitForChild("PlayerGui", 15)
+
+if not playerGui then return end
+
+-- Limpiar UI vieja
+for _, old in ipairs(playerGui:GetChildren()) do
+    if old.Name:match("SacredKeyUI") then old:Destroy() end
+end
+
+-- Detectar idioma
+local isSpanish = false
+pcall(function()
+    local loc = game:GetService("LocalizationService").RobloxLocaleId
+    if loc and string.find(string.lower(loc), "es") then isSpanish = true end
+end)
+
+-- Señal para esperar el click
+local continueEvent = Instance.new("BindableEvent")
+
+-- Crear ScreenGui
+local launcherGui = Instance.new("ScreenGui")
+launcherGui.Name = "SacredKeyUI"
+launcherGui.ResetOnSpawn = false
+launcherGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+launcherGui.Parent = playerGui
+
+-- POPUP FRAME
+local popFrame = Instance.new("Frame", launcherGui)
+popFrame.Name = "SacredUpdatePopup"
+popFrame.AutomaticSize = Enum.AutomaticSize.XY
+popFrame.Size = UDim2.new(0, 0, 0, 0)
+popFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+popFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+popFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+popFrame.BorderSizePixel = 0
+popFrame.Active = true
+popFrame.Draggable = true
+
+Instance.new("UICorner", popFrame).CornerRadius = UDim.new(0, 16)
+local popStroke = Instance.new("UIStroke", popFrame)
+popStroke.Color = Color3.fromRGB(148, 50, 255)
+popStroke.Thickness = 1.2
+
+local popPadding = Instance.new("UIPadding", popFrame)
+popPadding.PaddingTop = UDim.new(0, 12)
+popPadding.PaddingBottom = UDim.new(0, 12)
+popPadding.PaddingLeft = UDim.new(0, 14)
+popPadding.PaddingRight = UDim.new(0, 14)
+
+local popLayout = Instance.new("UIListLayout", popFrame)
+popLayout.SortOrder = Enum.SortOrder.LayoutOrder
+popLayout.Padding = UDim.new(0, 6)
+popLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- BOTÓN IDIOMA
+local langBtn = Instance.new("TextButton", popFrame)
+langBtn.Size = UDim2.new(0, 50, 0, 20)
+langBtn.BackgroundColor3 = Color3.fromRGB(30, 25, 45)
+langBtn.Text = isSpanish and "ES 🌐" or "EN 🌐"
+langBtn.Font = Enum.Font.GothamBold
+langBtn.TextSize = 9
+langBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+langBtn.LayoutOrder = 0
+Instance.new("UICorner", langBtn).CornerRadius = UDim.new(0, 6)
+
+-- TÍTULO
+local popTitle = Instance.new("TextLabel", popFrame)
+popTitle.AutomaticSize = Enum.AutomaticSize.XY
+popTitle.BackgroundTransparency = 1
+popTitle.Text = "✨ Update 12.5"
+popTitle.Font = Enum.Font.GothamBlack
+popTitle.TextSize = 15
+popTitle.TextColor3 = Color3.fromRGB(148, 50, 255)
+popTitle.LayoutOrder = 1
+
+-- WARNING
+local popWarning = Instance.new("TextLabel", popFrame)
+popWarning.AutomaticSize = Enum.AutomaticSize.Y
+popWarning.Size = UDim2.new(0, 230, 0, 0)
+popWarning.BackgroundTransparency = 1
+popWarning.Font = Enum.Font.GothamBlack
+popWarning.TextSize = 8.5
+popWarning.TextColor3 = Color3.fromRGB(255, 255, 0)
+popWarning.TextWrapped = true
+popWarning.TextXAlignment = Enum.TextXAlignment.Center
+popWarning.LayoutOrder = 2
+popWarning.Text = isSpanish and "⚠️ NO USEN ESTA VERSIÓN DEL SCRIPT EN PC, UNA VERSIÓN PARA PC ESTARÁ DISPONIBLE PRONTO ⚠️" or "⚠️ DO NOT USE THIS SCRIPT VERSION ON PC, A PC VERSION WILL BE AVAILABLE SOON ⚠️"
+
+-- CONTENIDO
+local popContent = Instance.new("TextLabel", popFrame)
+popContent.AutomaticSize = Enum.AutomaticSize.Y
+popContent.Size = UDim2.new(0, 230, 0, 0)
+popContent.BackgroundTransparency = 1
+popContent.Font = Enum.Font.GothamBold
+popContent.TextSize = 8.5
+popContent.TextColor3 = Color3.fromRGB(200, 200, 200)
+popContent.TextWrapped = true
+popContent.TextXAlignment = Enum.TextXAlignment.Left
+popContent.TextYAlignment = Enum.TextYAlignment.Top
+popContent.LayoutOrder = 3
+
+if isSpanish then
+    popContent.Text = "Sanguine Z sin cooldown, Aimbot arreglado, Hitbox/Stun (Beta), Macro Config, Wallpapers, Songs y más.\n\n🟣 ¡El script ahora es SIN KEY! Solo presiona Empezar."
+else
+    popContent.Text = "Sanguine Z no cooldown, Aimbot fixed, Hitbox/Stun (Beta), Macro Config, Wallpapers, Songs & more.\n\n🟣 The script is now KEYLESS! Just click Get Started."
+end
+
+-- BOTÓN GET STARTED
+local getStartedBtn = Instance.new("TextButton", popFrame)
+getStartedBtn.Size = UDim2.new(0, 120, 0, 28)
+getStartedBtn.BackgroundColor3 = Color3.fromRGB(148, 50, 255)
+getStartedBtn.Text = isSpanish and "Empezar" or "Get Started"
+getStartedBtn.Font = Enum.Font.GothamBlack
+getStartedBtn.TextSize = 10
+getStartedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+getStartedBtn.LayoutOrder = 4
+Instance.new("UICorner", getStartedBtn).CornerRadius = UDim.new(0, 8)
+
+-- FUNCIONES DE LOS BOTONES
+langBtn.MouseButton1Click:Connect(function()
+    isSpanish = not isSpanish
+    langBtn.Text = isSpanish and "ES 🌐" or "EN 🌐"
+    getStartedBtn.Text = isSpanish and "Empezar" or "Get Started"
+    popWarning.Text = isSpanish and "⚠️ NO USEN ESTA VERSIÓN DEL SCRIPT EN PC, UNA VERSIÓN PARA PC ESTARÁ DISPONIBLE PRONTO ⚠️" or "⚠️ DO NOT USE THIS SCRIPT VERSION ON PC, A PC VERSION WILL BE AVAILABLE SOON ⚠️"
+    if isSpanish then
+        popContent.Text = "Sanguine Z sin cooldown, Aimbot arreglado, Hitbox/Stun (Beta), Macro Config, Wallpapers, Songs y más.\n\n🟣 ¡El script ahora es SIN KEY! Solo presiona Empezar."
+    else
+        popContent.Text = "Sanguine Z no cooldown, Aimbot fixed, Hitbox/Stun (Beta), Macro Config, Wallpapers, Songs & more.\n\n🟣 The script is now KEYLESS! Just click Get Started."
+    end
+end)
+
+getStartedBtn.MouseButton1Click:Connect(function()
+    launcherGui:Destroy()
+    continueEvent:Fire()
+end)
+
+-- ESPERAR A QUE PRESIONEN GET STARTED
+continueEvent.Event:Wait()
+continueEvent:Destroy()
+
+-- ============================================================
+-- 👇 PON TU SCRIPT AQUÍ ABAJO - SE EJECUTA AL PRESIONAR GET STARTED
+-- ============================================================
+
+
+
+-- ============================================================
 -- SACRED AHK VERSION 12.5 | LOCAL DEV STANDALONE
 -- ============================================================
 
@@ -5667,4 +5818,6 @@ pcall(LoadConfig)
 pcall(LoadMacroConfig)
 centerAndMaximizeUI()
 end
+
+
 print("✅ SACRED AHK v12.5 LOADED - ALL TOGGLES AND CONFIGS 100% PERSISTENT")
