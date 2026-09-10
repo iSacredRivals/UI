@@ -1,6 +1,6 @@
-
 -- ============================================================
 -- SACRED AHK VERSION 12.5 | KEYLESS ANNOUNCEMENT
+-- ============================================================
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer or Players:WaitForChildOfClass("Player")
 local playerGui = player:WaitForChild("PlayerGui", 15)
@@ -5056,7 +5056,7 @@ function refreshPlayerListUI()
         refreshBtn.MouseButton1Click:Connect(refreshPlayerListUI)
     end
 end
-loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
+
 Players.PlayerAdded:Connect(refreshPlayerListUI)
 Players.PlayerRemoving:Connect(refreshPlayerListUI)
 DropLabel.MouseButton1Click:Connect(function()
@@ -5741,9 +5741,7 @@ end
 -- ============================================================
 -- THEME SYSTEM & KEYBINDING HANDLERS
 -- ============================================================
-
-loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/refs/heads/main/message.txt"))()
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
 do
 function isColorLight(c3)
     return (c3.R * 0.299 + c3.G * 0.587 + c3.B * 0.114) > 0.65
