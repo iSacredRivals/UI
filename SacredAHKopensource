@@ -1,6 +1,12 @@
 -- ============================================================
 -- SACRED AHK VERSION 12.5 | KEYLESS ANNOUNCEMENT
 -- ============================================================
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
+    end)
+end)
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer or Players:WaitForChildOfClass("Player")
 local playerGui = player:WaitForChild("PlayerGui", 15)
