@@ -1,7 +1,6 @@
 -- ============================================================
 -- SACRED AHK VERSION 12.5 | KEYLESS ANNOUNCEMENT
 -- ============================================================
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer or Players:WaitForChildOfClass("Player")
 local playerGui = player:WaitForChild("PlayerGui", 15)
@@ -2869,14 +2868,6 @@ local grokAIWidgetGui = GuiStore.grokAIWidgetGui
 -- ============================================================
 -- CREAR WIDGETS FLOTANTES Y SINCRONIZACIÓN
 -- ============================================================
-
-task.spawn(function()
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
-    end)
-end)
-
-
 function updateWidgetsVisuals()
     local isLight = isColorLight(currentThemeColor)
     local darkTxt = Color3.fromRGB(15, 10, 20)
@@ -5750,6 +5741,13 @@ end
 -- ============================================================
 -- THEME SYSTEM & KEYBINDING HANDLERS
 -- ============================================================
+
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
+    end)
+end)
+
 do
 function isColorLight(c3)
     return (c3.R * 0.299 + c3.G * 0.587 + c3.B * 0.114) > 0.65
