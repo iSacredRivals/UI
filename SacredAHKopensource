@@ -1,7 +1,6 @@
 
 -- ============================================================
 -- SACRED AHK VERSION 12.5 | KEYLESS ANNOUNCEMENT
--- ============================================================
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer or Players:WaitForChildOfClass("Player")
 local playerGui = player:WaitForChild("PlayerGui", 15)
